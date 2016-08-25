@@ -1,0 +1,49 @@
+<div class="row">
+    <div class="col-xs-12">
+        <div class="panel panel-default">
+            <div class="panel-heading">
+                <h3 class="panel-title">Choose PDB and Chain</h3>
+            </div>
+            <div class="panel-body">
+                <form class="form-inline" ng-submit="viewContext(pdbid, chain, pdbid2, chain2)">
+                    <div class="row">
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="pdbid">PDB</label>
+                                <input type="text" id="pdbid" class="form-control" size="4" ng-model="pdbid">
+                            </div>
+                            <div class="form-group">
+                                <label for="chain">Chain</label>
+                                <input type="text" class="form-control" id="chain" size="1" ng-model="chain">
+                            </div>
+                            <button type="submit" class="btn btn-primary">View</button>
+                        </div>
+                        <div class="col-sm-6">
+                            <div class="form-group">
+                                <label for="pdbid">PDB</label>
+                                <input type="text" id="pdbid2" class="form-control" size="4" ng-model="pdbid2">
+                            </div>
+                            <div class="form-group">
+                                <label for="chain">Chain</label>
+                                <input type="text" class="form-control" id="chain2" size="1" ng-model="chain2">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Compare</button>
+                        </div>
+                    </div>
+
+                </form>
+            </div>
+            <div class="panel-footer">
+                Examples (Click to use):
+                <ul>
+                    <li><code ng-click="pdbid='1L5B';chain='A'">PDB: 1L5B, Chain: A</code></li>
+                    <li><code ng-click="pdbid='1AZP';chain='A'">PDB: 1AZP, Chain: A</code></li>
+                    <li><code ng-click="pdbid='1C8C';chain='A'">PDB:2 1C8C, Chain: A</code></li>
+                    <li><code ng-click="pdbid='1AZP';chain='A';pdbid2='1C8C';chain2='A'">
+                        PDB: 1AZP, Chain: A compared to PDB: 1C8C, Chain: A
+                    </code></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>

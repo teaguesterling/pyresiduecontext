@@ -1,0 +1,3 @@
+Replace the PDB, gemometry, and unionfind modules with biopython wrappers (or java programs)
+
+Do this before releasing anything

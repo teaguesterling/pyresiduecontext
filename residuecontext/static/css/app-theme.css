@@ -1,0 +1,115 @@
+body {
+    max-height: 100%;
+}
+
+a[ng-click] {
+    cursor: pointer;
+}
+
+.dl-horizontal.small > dt {
+    width: 100px;
+}
+
+.dl-horizontal.small > dd {
+    margin-left: 120px;
+}
+
+.dl-horizontal.small {
+    margin-bottom: 0;
+}
+
+.selector {
+    overflow-y: auto;
+    max-height: 100px;
+}
+
+.selector > .highlight {
+    background-color: #f5e79e;
+}
+
+.selector > li {
+    padding: 0;
+    font-size: 14px;
+    border: 2px solid #fff;
+}
+
+.selector > li.active {
+    border: 2px solid #a94442;
+}
+
+.heatmaps {
+    border-right: 1px solid #ddd;
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow-y: scroll;
+    padding: 10px 5px;
+}
+
+.detail {
+}
+
+.table-squish > thead > tr > th,
+.table-squish > tbody > tr > th,
+.table-squish > thead > tr > td,
+.table-squish > tbody > tr > td,
+.table-squish > tfoot > tr > td {
+    padding: 0;
+}
+
+.table-heatmap > tbody > tr> td, .table-heatmap > tbody > tr > th {
+    width: 20px;
+    font-size: 10px;
+    text-align: center;
+}
+
+.heatmap {
+    border-top: 2px solid #FFF;
+    border-bottom: 2px solid #FFF;
+}
+
+.heatmap.active {
+    border-top: 2px solid #a94442;
+    border-bottom: 2px solid #a94442;
+}
+
+.heatmap a {
+    display: block;
+}
+
+.heatmap strong {
+    display: block;
+    font-family: monospace;
+    width: 4em;
+    padding: 0 10px;
+    float: left;
+}
+
+.heatmap svg {
+    border: 1px solid #ddd;
+}
+
+.table-heatmap td.focus {
+    outline: 2px solid #a94442;
+}
+
+.heatmaps .heatmap.highlight {
+    background-color: #f5e79e;
+}
+
+.panel-heatmap .panel-heading {
+    display:none;
+}
+
+.panel-heatmap {
+    margin-bottom: 5px;
+}
+
+svg .polar-bin {
+    cursor: pointer;
+}
+
+.spherical-heatmap {
+    margin-bottom: 5px;
+}

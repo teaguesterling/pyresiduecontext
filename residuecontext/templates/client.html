@@ -1,0 +1,22 @@
+{% extends "layout.html" %}
+{% block html_attributes %}ng-app="ResCtxVis"{% endblock %}
+
+{% block css %}
+{% endblock %}
+
+{% block js %}
+<script src="{{ url_for('static', filename='lib/angular/angular.js') }}"></script>
+<script src="{{ url_for('static', filename='lib/angular/angular-route.js') }}"></script>
+<script src="{{ url_for('static', filename='lib/angular/angular-resource.js') }}"></script>
+<script src="{{ url_for('static', filename='js/services.js') }}"></script>
+<script src="{{ url_for('static', filename='js/controllers.js') }}"></script>
+<script src="{{ url_for('static', filename='js/filters.js') }}"></script>
+<script src="{{ url_for('static', filename='js/directives.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
+
+{% block content_class %}container-fluid{% endblock %}
+
+{% block content %}
+    <div ng-view></div>
+{% endblock %}

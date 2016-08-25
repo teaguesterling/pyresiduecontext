@@ -1,0 +1,129 @@
+<div class="row">
+    <div class="col-sm-3 col-md-2">
+        <div ng-show="active.item != null">
+            <div class="panel panel-default spherical-heatmap text-center"
+                 ng-repeat="(rIndex, radialBin) in active.heatmap" ng-if="rIndex > 0">
+                <svg viewBox="-100 -100 200 200">
+                    <circle r="5" fill="red" cx="0" cy="0"/>
+                    <path class="polar-bin"
+                          id="polar-bin-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                          ng-polar-bin="{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                          fill="transparent"
+                          stroke="#DDD"
+                          stroke-width="1"
+                          ng-d="{{ template.path }}"
+                          ng-class="{focus: focus === template.index}"
+                          ng-repeat="template in polarBinsTemplate"
+                    />
+                </svg>
+            </div>
+
+            <!--
+            <div class="panel panel-default panel-heatmap" ng-repeat="(rIndex, radialBin) in active.heatmap">
+                <div class="panel-heading">
+                    <h4 class="panel-title">
+                        <code ng-if="rIndex == 0">
+                            &lt; {{ context.bin_data.radial_bin_boundaries[0] | number:2 }}&#197;
+                        </code>
+                        <code ng-if="rIndex >= context.bin_data.radial_bin_boundaries.length-1">
+                            &gt; {{ context.bin_data.radial_bin_boundaries[context.bin_data.radial_bin_boundaries.length-1] | number:2 }}&#197;
+                        </code>
+                        <code ng-if="rIndex > 0 && rIndex < context.bin_data.radial_bin_boundaries.length - 1">
+                            {{ context.bin_data.radial_bin_boundaries[rIndex] | number:2 }}&#197;
+                            &ndash;
+                            {{ context.bin_data.radial_bin_boundaries[rIndex+1]  | number:2 }}&#197;
+                        </code>
+                    </h4>
+                </div>
+                <table class="table table-bordered table-heatmap table-squish">
+                    <tr ng-repeat="(zIndex, zenith) in radialBin">
+                        <td ng-repeat="(aIndex, bin) in zenith"
+                            style="background-color: {{bin.color}}"
+                            ng-class="{focus: focus === bin.index}"
+                            title="#{{ bin.index }}: ({{ bin.binIndex.join(', ') }})  - {{ bin.value }} members"
+                            ng-mouseenter="foucs === null && setActiveBinHighlights(bin.index)"
+                            ng-mouseleave="foucs === null && resetHighlights()"
+                            ng-click="toggleFocus(bin.index)">
+                            &nbsp;
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            -->
+        </div>
+    </div>
+    <div class="col-xs-12 col-sm-8 col-md-8">
+        <div class="row">
+            <div class="col-xs-12">
+                <ul class="list-inline text-center selector">
+                    <li ng-repeat="(index, heatmap) in thumbnails.heatmaps"
+                         ng-class="{active: index==active.index, highlight: highlights.indexOf(index) !== -1}">
+                        <a ng-click="setActiveContext(index)"
+                           title="{{ context.contexts[index].name }} ({{ context.contexts[index].coords.join(', ') }})">
+                            {{ context.contexts[index].aacode }}{{ context.contexts[index].index + 1 }}
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-xs-12">
+                <div ng-js-mol id="viewer" structure="{{ pdbid }}" chain="{{ chain }}"></div>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-2 col-md-2">
+        <div ng-show="active.item != null">
+            <div class="btn-group btn-default pull-right" ng-if="false">
+                <button class="btn btn-default"
+                        ng-click="stepActiveContext(-1)">
+                    &leftarrow; Prev
+                </button>
+                <button class="btn btn-default" ng-click="toggleAnimate()">
+                    {{ animationTimeout === null ? "Start" : "Stop" }} Animation
+                </button>
+                <button class="btn btn-default"
+                        ng-click="stepActiveContext(1)">
+                    &rightarrow; Next
+                </button>
+            </div>
+            <h2>(#{{active.index}}) {{ active.item.name }}</h2>
+            <dl class="dl-horizontal small">
+                <dt>Coordinates</dt>
+                <dd>
+                    <code ng-repeat="coord in active.item.coords">{{ coord }}{{ $last ? '' : ', '}}</code>
+                </dd>
+                <dt>Residue Type</dt>
+                <dd>{{ active.item.aacode }}</dd>
+            </dl>
+
+            <div class="panel panel-default spherical-heatmap text-center" ng-if="focus">
+                <svg viewBox="0 0 140 100" width="100%" height="200px" style="transform: rotate(180deg);">
+                    <rect class="polar-bin"
+                          ng-id="polar-grid-bin-{{ $index }}"
+                          ng-polar-bin="polar-grid-bin-{{ $index }}"
+                          fill="rgb({{ 5 * $index }}, 0, {{ 255 - 5 * $index }})"
+                          ng-x="{{ 10 * $index * ((7 - -7 + 1) / 50) }}"
+                          ng-y="0"
+                          ng-width="{{ 10 * ((7 - -7 + 1) / 50) }}"
+                          ng-height="{{ 200 * binHeight }}"
+                          ng-if="binHeight > 0"
+                          ng-repeat="binHeight in gridHistograms[focus-72] track by $index"
+                    />
+                    <line x1="70"
+                          x2="70"
+                          y1="0"
+                          y2="100"
+                          style="stroke: #CCC; stroke-width: 1"
+                    />
+                    <line x1="0"
+                          x2="140"
+                          y1="0"
+                          y2="0"
+                          style="stroke: #CCC; stroke-width: 1"
+                    />
+                </svg>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,146 @@
+<div class="row" ng-keydown="handleKeyPress">
+    <div class="col-xs-12">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="heatmaps">
+                    <div ng-repeat="(index, heatmap) in thumbnails.heatmaps"
+                         class="heatmap clearfix"
+                         ng-class="{active: index==active.index, highlight: highlights.indexOf(index) !== -1}">
+                        <a ng-click="setActiveContext(index)" title="{{ context.contexts[index].name }} ({{ context.contexts[index].coords.join(', ') }})">
+                            <strong>{{ context.contexts[index].aacode }}{{ context.contexts[index].index }}</strong>
+                            <svg ng-width="{{ thumbnails.dimensions.width }}px"
+                                 ng-height="{{ thumbnails.dimensions.height }}px">
+                                <rect ng-repeat="boundary in thumbnails.boundaries"
+                                      ng-width="{{ boundary.width }}"
+                                      ng-height="{{ boundary.height }}"
+                                      ng-x="{{ boundary.x }}"
+                                      ng-y="{{ boundary.y }}"
+                                      style="fill:{{ boundary.color }}">
+                                </rect>
+                                <rect ng-repeat="cell in heatmap"
+                                      ng-width="{{ cell.width }}"
+                                      ng-height="{{ cell.height }}"
+                                      ng-x="{{ cell.x }}"
+                                      ng-y="{{ cell.y }}"
+                                      style="fill:{{ cell.color }}">
+                                      <title>{{ cell.name }}</title>
+                                </rect>
+                            </svg>
+                        </a>
+                    </div>
+                    <div class="small">
+                        <h4>Timings</h4>
+                        <h5>Server Timing</h5>
+                        <dl class="dl-horizontal">
+                            <dt>Download</dt>
+                            <dd>{{ context.timing.download }}sec</dd>
+                            <dt>Context Generation</dt>
+                            <dd>{{ context.timing.generate }}sec</dd>
+                            <dt>JSON Production</dt>
+                            <dd>{{ context.timing.render }}sec</dd>
+                        </dl>
+                        <h5>Client Timing</h5>
+                        <dl class="dl-horizontal">
+                            <dt>Request</dt>
+                            <dd>{{ clientTiming.download }}sec</dd>
+                            <dt>Transmission</dt>
+                            <dd><strong>{{ clientTiming.transmission }}sec</strong></dd>
+                            <dt>Drawing</dt>
+                            <dd>{{ clientTiming.drawing }}sec</dd>
+                        </dl>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="detail">
+                    <div ng-show="status != ''">
+                        <div class="panel panel-warning">
+                            <div class="panel-heading">
+                                Loading Data
+                            </div>
+                            <div class="panel-body">
+                                <p class="text-center">{{ status }}</p>
+                            </div>
+                            <div class="panel-footer">
+                                <small>Note that transmission time (often many MB) is the majority of this</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div ng-show="active.item != null">
+                        <div class="btn-group btn-default pull-right">
+                            <button class="btn btn-default"
+                                    ng-click="stepActiveContext(-1)">
+                                &leftarrow; Prev
+                            </button>
+                            <button class="btn btn-default" ng-click="toggleAnimate()">
+                                {{ animationTimeout === null ? "Start" : "Stop" }} Animation
+                            </button>
+                            <button class="btn btn-default"
+                                    ng-click="stepActiveContext(1)">
+                                &rightarrow; Next
+                            </button>
+                        </div>
+                        <h1>(#{{active.index}}) {{ active.item.name }}</h1>
+                        <dl class="dl-horizontal">
+                            <dt>Coordinates</dt>
+                            <dd>
+                                <code ng-repeat="coord in active.item.coords">{{ coord }}{{ $last ? '' : ', '}}</code>
+                            </dd>
+                            <dt>Max Radius</dt>
+                            <dd>{{ active.item.size }}</dd>
+                            <dt>Residue Type</dt>
+                            <dd>{{ active.item.aacode }}</dd>
+                        </dl>
+                        <div class="panel panel-default" ng-repeat="(rIndex, radialBin) in active.heatmap">
+                            <div class="panel-heading">
+                                <h4 class="panel-title">
+                                    Radial Bin #{{ rIndex + 1 }}
+
+                                    <code ng-if="rIndex == 0">
+                                        &lt; {{ context.bin_data.radial_bin_boundaries[0] | number:2 }}&#197;
+                                    </code>
+                                    <code ng-if="rIndex >= context.bin_data.radial_bin_boundaries.length-1">
+                                        &gt; {{ context.bin_data.radial_bin_boundaries[context.bin_data.radial_bin_boundaries.length-1] | number:2 }}&#197;
+                                    </code>
+                                    <code ng-if="rIndex > 0 && rIndex < context.bin_data.radial_bin_boundaries.length - 1">
+                                        {{ context.bin_data.radial_bin_boundaries[rIndex] | number:2 }}&#197;
+                                        &ndash;
+                                        {{ context.bin_data.radial_bin_boundaries[rIndex+1]  | number:2 }}&#197;
+                                    </code>
+                                </h4>
+                            </div>
+                            <table class="table table-bordered table-heatmap table-squish">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>0</th> <th>&pi;/6</th> <th>&pi;/3</th> <th>&pi;/2</th> <th>2&pi;/3</th> <th>5&pi;/6</th>
+                                        <th>&pi;</th> <th>7&pi;/6</th> <th>4&pi;/3</th> <th>3&pi;/2</th> <th>4&pi;/3</th> <th>11&pi;/6</th>
+                                    </tr>
+                                </thead>
+                                <tr ng-repeat="(zIndex, zenith) in radialBin">
+                                    <th>
+                                        <span ng-if="zIndex == 0">0</span>
+                                        <span ng-if="zIndex > context.bin_data.zenith_boundaries.length-1 ">&pi;</span>
+                                        <span ng-if="zIndex > 0 && zIndex <= context.bin_data.zenith_boundaries.length-1 ">
+                                            {{ context.bin_data.zenith_boundaries[zIndex] | number:2 }}&pi;
+                                        </span>
+                                    </th>
+                                    <td ng-repeat="(aIndex, bin) in zenith"
+                                        style="background-color: {{bin.color}}"
+                                        ng-class="{focus: focus === bin.index}"
+                                        title="#{{ bin.index }}: ({{ bin.binIndex.join(', ') }})  - {{ bin.value }} members"
+                                        ng-mouseenter="foucs === null && setActiveBinHighlights(bin.index)"
+                                        ng-mouseleave="foucs === null && resetHighlights()"
+                                        ng-click="toggleFocus(bin.index)">
+                                        &nbsp;
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
