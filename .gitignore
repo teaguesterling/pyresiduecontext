@@ -1,4 +1,7 @@
-ignpore/
+.idea
+ignore/*
+residuecontext/static/job-data/*
+
 *.pyc
 # Byte-compiled / optimized / DLL files
 __pycache__/
