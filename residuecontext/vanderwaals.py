@@ -9,12 +9,8 @@ from six import StringIO
 
 import sh
 
-try:
-    from .pdbfiles import split_ext_gz
-    from .prepare_structure import get_charged_pdb
-except (ValueError, SystemError):
-    from pdbfiles import split_ext_gz
-    from prepare_structure import get_charged_pdb
+from residuecontext.pdbfiles import split_ext_gz
+from residuecontext.prepare_structure import get_charged_pdb
 
 
 def grid_parser(path):
@@ -36,7 +32,8 @@ CHEMGRID_ES_TYPE = 1  # Not important
 CHEMGRID_ES_SCALE = 4  # Not important
 CHEMGRID_BUMP_POLAR = 2.3
 CHEMGRID_BUMP_NONPOLAR = 2.6
-CHEMGRID_OUTPUT_PREFIX = 'vdw'
+CHEMGRID_OUTPUT_PREFIX = 'output'
+CHEMGRID_OUTPUT_VDW = CHEMGRID_OUTPUT_PREFIX + '.vdw'
 
 CHEMGRID_PARAMS = os.path.join(CHEMGRID_DIR, 'INCHEM')
 CHEMGRID_PARAM_PATHS = (
@@ -73,7 +70,7 @@ CHEMGRID_OVERRIDE_PARAMS = """
 chemgrid_cmd = sh.Command(os.path.join(CHEMGRID_DIR, 'chemgrid'))
 
 
-def run_chemgrid(pdb, crg, phi, log=None):
+def run_chemgrid(pdb, box, vdw, log=None):
     try:
         exec_dir = tempfile.mkdtemp()
         cmd = chemgrid_cmd.bake()
@@ -87,15 +84,15 @@ def run_chemgrid(pdb, crg, phi, log=None):
             pdb,
             os.path.join(exec_dir, CHEMGRID_INPUT_FILE)
         )
+        os.symlink(
+            box,
+            os.path.join(exec_dir, CHEMGRID_BOX_FILE)
+        )
         logging.info("Running chemgrid {0!s} in {1}".format(cmd, exec_dir))
         cmd(_err_to_out=True, _cwd=exec_dir, _out=log)
         shutil.move(
-            os.path.join(exec_dir, QNIFFT_OUTPUT_CRG),
-            crg
-        )
-        shutil.move(
-            os.path.join(exec_dir, QNIFFT_OUTPUT_PHI),
-            phi
+            os.path.join(exec_dir, CHEMGRID_OUTPUT_VDW),
+            vdw
         )
     except Exception:
         raise
@@ -103,16 +100,20 @@ def run_chemgrid(pdb, crg, phi, log=None):
         shutil.rmtree(exec_dir)
 
 
-def get_electrostatics_grid(code, chain=None, model=0, alignment_id=None, force=False, log=None):
+def get_vanderderwaals_grid(code, chain=None, model=0, alignment_id=None, force=False, log=None):
     protonated = get_charged_pdb(code,
                                  chain=chain,
                                  model=model,
                                  alignment_id=alignment_id,
                                  force=force)
     base, ext = split_ext_gz(protonated)
-    charged = base + '.crg'
-    phi = base + '.phi'
-    if force or not os.path.exists(phi):
-        run_qnifft(protonated, charged, phi, log=log)
-    phi_grid = grid_parser(phi)
-    return phi_grid
+    box = base + '.box'
+    vdw = base + '.vdw'
+
+    if not os.path.exists(box):
+        pass
+
+    if force or not os.path.exists(vdw):
+        run_chemgrid(protonated, box, vdw, log=log)
+    vdw_grid = grid_parser(vdw)
+    return vdw_grid

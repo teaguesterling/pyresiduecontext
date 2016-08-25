@@ -9,21 +9,16 @@ from six import StringIO
 
 import sh
 
-try:
-    from . import phigrid
-    from .pdbfiles import split_ext_gz
-    from .prepare_structure import get_charged_pdb
-except (ValueError, SystemError):
-    import phigrid
-    from pdbfiles import split_ext_gz
-    from prepare_structure import get_charged_pdb
+from residuecontext import phigrid
+from residuecontext.config import QNIFFT_DIR
+from residuecontext.pdbfiles import split_ext_gz
+from residuecontext.prepare_structure import get_charged_pdb
 
 
 def grid_parser(path):
     return phigrid.phi(path, is64=False, byteswap=False)
 
 
-QNIFFT_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'qnifft')
 QNIFFT_SIZE = 193
 
 # QNIFFT has an issue with (longer) absolute paths, it seems

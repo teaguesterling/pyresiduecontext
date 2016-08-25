@@ -16,14 +16,25 @@ from Bio.PDB.PDBIO import (
 
 import numpy as np
 
-ALIGNMENT_JOB_DIR = "/home/teague/Research/ResidueContext/Working/WebResidueContext/demo/default-env/rescont_web_files/"
-STATIC_PDB_DIR = os.path.join(os.path.dirname(__file__), 'static', 'pdb')
+from residuecontext.config import (
+    STATIC_PDB_DIR,
+    ALIGNMENT_JOB_DIR,
+)
+
 STATIC_PDB_LIST = PDBList(pdb=STATIC_PDB_DIR)
 
 
 def get_pdb_id_from_filename(filename):
     pdbid = os.path.basename(filename).split('.')[0]
     return pdbid
+
+
+def extract_ident(ident):
+    if len(ident) not in (4, 5):
+        return None, None
+    pdbid = ident[:4]
+    chain = ident[4:] or '_'
+    return pdbid, chain
 
 
 def split_ext_gz(path):
@@ -124,7 +135,7 @@ pdb_parser = PDBParser()
 pdb_writer = PDBIO(use_model_flag=0)  # Reduce doesn't like "model 0"
 
 
-def get_pdb_selection(code, chain=None, model=0, alignment_id=None, force=False, root=None):
+def get_pdb_selection(code, chain=None, model=0, alignment_id=None, root=None, target=None):
     code = os.path.basename(code)
 
     if alignment_id is not None:
@@ -133,16 +144,17 @@ def get_pdb_selection(code, chain=None, model=0, alignment_id=None, force=False,
 
     if root is None:
         path = STATIC_PDB_LIST.retrieve_pdb_file(code)
-    else:
+    elif os.path.isdir(root):
         path = werkzeug.security.safe_join(root, code + '.pdb')
+    else:
+        path = root
 
-    if os.path.exists(path + '-transform.txt'):
+    transformed_path = werkzeug.security.safe_join(root, 'transformed-' + code + '.pdb')
+    if os.path.exists(transformed_path):
+        path = transformed_path
+        transforms = None
+    elif os.path.exists(path + '-transform.txt'):
         transforms = path + '-transform.txt'
-        transformed_path = werkzeug.security.safe_join(root, 'transformed-' + code + '.pdb')
-
-        if os.path.exists(transformed_path):
-            path = transformed_path
-            transforms = None
     else:
         transforms = None
 
@@ -174,6 +186,12 @@ def get_pdb_selection(code, chain=None, model=0, alignment_id=None, force=False,
     else:
         selection_path = path
 
+    if target is not None:
+        if os.path.isdir(target):
+            selection_path = os.path.join(target, os.path.basename(selection_path))
+        else:
+            selection_path = target
+
     if not os.path.exists(selection_path):
         pdb_writer.set_structure(structure)
         pdb_writer.save(selection_path, select=selector)
@@ -183,7 +201,7 @@ def get_pdb_selection(code, chain=None, model=0, alignment_id=None, force=False,
 
 def load_alignment_file(io):
     chunks = []
-    buffer = []
+    buf = []
 
     title = None
 
@@ -192,15 +210,15 @@ def load_alignment_file(io):
 
         if title is None:
             title = line
-        elif len(buffer) == 0 and line.startswith('Structure 1'):
-            buffer.append(line)
-        elif len(buffer) == 1 and line[:28].strip() == '':
-            buffer.append(line)
-        elif len(buffer) == 2 and line.startswith('Structure 2'):
-            buffer.append(line)
+        elif len(buf) == 0 and line.startswith('Structure 1'):
+            buf.append(line)
+        elif len(buf) == 1 and line[:28].strip() == '':
+            buf.append(line)
+        elif len(buf) == 2 and line.startswith('Structure 2'):
+            buf.append(line)
             chunks.append(buffer)
-            buffer = []
-        elif len(chunks) > 0 and len(buffer) == 0 and len(line) > 0:
+            buf = []
+        elif len(chunks) > 0 and len(buf) == 0 and len(line) > 0:
             break
 
     title_parts = title.split()
@@ -250,17 +268,13 @@ def load_alignment_file(io):
     return alignment
 
 
-def read_alignment_file(alignment_id, root=ALIGNMENT_JOB_DIR):
+def read_alignment_file(alignment_id, kind=None, root=ALIGNMENT_JOB_DIR):
     alignment_dir = werkzeug.security.safe_join(root, str(alignment_id))
+    if kind is not None:
+        alignment_dir = werkzeug.security.safe_join(alignment_dir, kind)
     alignment_file = os.path.join(alignment_dir, 'alignment.txt')
 
     with open(alignment_file) as f:
         blocks = load_alignment_file(f)
 
     return blocks
-
-
-
-
-
-

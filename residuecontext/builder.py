@@ -16,10 +16,8 @@ from Bio.PDB.Polypeptide import three_to_one as residue_three_code_to_one_code
 
 import time
 
-try:
-    from .pdbfiles import PDBParser
-except (SystemError, ValueError):
-    from pdbfiles import PDBParser
+
+from residuecontext.pdbfiles import PDBParser
 
 
 def ball_mask(shape):

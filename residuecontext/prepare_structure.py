@@ -9,21 +9,11 @@ from six import StringIO
 
 import sh
 
-try:
-    from .pdbfiles import (
-        get_pdb_selection,
-        split_ext_gz,
-    )
-except (ValueError, SystemError):
-    from pdbfiles import (
-        get_pdb_selection,
-        split_ext_gz,
-    )
-
-
-
-REDUCE_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'reduce')
-
+from residuecontext.config import REDUCE_DIR
+from residuecontext.pdbfiles import (
+    get_pdb_selection,
+    split_ext_gz,
+)
 
 reduce_cmd = sh.Command(os.path.join(REDUCE_DIR, 'reduce')).bake(
     '-db', os.path.join(REDUCE_DIR, 'reduce_wwPDB_het_dict.txt'),
