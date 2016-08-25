@@ -15,11 +15,19 @@ angular.module('ResCtxVis', [
                 templateUrl: '/static/tpl/input.html',
                 controller: 'PdbSelector'
             })
+            .when('/aligned/:alignmentRunId', {
+                templateUrl: '/static/tpl/aligned-index.html',
+                controller: 'AlignedIndex'
+            })
+            .when('/aligned/:alignmentRunId/:method/:identifier1-:identifier2', {
+                templateUrl: '/static/tpl/view-aligned.html',
+                controller: 'ViewAligned'
+            })
             .when('/aligned/:alignmentRunId/:identifier1-:identifier2', {
                 templateUrl: '/static/tpl/view-aligned.html',
                 controller: 'ViewAligned'
             })
-            .when('/compare/:identifier1-:identifier2', {
+            .when('/comparison/:identifier1-:identifier2', {
                 templateUrl: '/static/tpl/view-2.html',
                 controller: 'View2'
             })

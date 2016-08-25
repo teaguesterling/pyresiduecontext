@@ -44,8 +44,7 @@ def get_charged_pdb(code, chain=None, model=0, alignment_id=None, force=False, l
     selection_path = get_pdb_selection(code,
                                        chain=chain,
                                        model=model,
-                                       alignment_id=alignment_id,
-                                       force=force)
+                                       alignment_id=alignment_id)
     base, ext = split_ext_gz(selection_path)
     protonated = base + '.H'
     if force or not os.path.exists(protonated):

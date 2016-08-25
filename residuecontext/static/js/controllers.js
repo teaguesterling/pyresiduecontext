@@ -3,14 +3,45 @@
 angular.module('ResCtxVis.controllers', [
     'ResCtxVis.services'
 ])
-    .controller('PdbSelector', ['$scope', '$location', function ($scope, $location) {
-        $scope.viewContext = function(pdbid1, chain1, pdbid2, chain2) {
-            if(!pdbid2 || !chain2) {
-                $location.path("/view/" + pdbid1 + chain1);
+    .controller('PdbSelector', ['$scope', '$location', 'AlignmentJob', function ($scope, $location, AlignmentJob) {
+        $scope.loading = false;
+        $scope.viewContext = function(pdbid1, chain1, pdbid2, chain2, mode) {
+            if(mode) {
+                $scope.loading = true;
+                AlignmentJob.create({
+                    ident1: pdbid1 + chain1,
+                    ident2: pdbid2 + chain2
+                }, function(alignmentJob) {
+                    $scope.loading = false;
+                    $location.path("/aligned/" + alignmentJob.alignment_id);
+                });
             } else {
-                $location.path("/compare/" + pdbid1 + chain1 + "-" + pdbid2 + chain2);
+                $scope.loading = false;
+                if(!pdbid2 || !chain2) {
+                    $location.path("/view/" + pdbid1 + chain1);
+                } else {
+                    $location.path("/comparison/" + pdbid1 + chain1 + "-" + pdbid2 + chain2);
+                }
             }
+
         };
+    }])
+
+    .controller('AlignedIndex', ['$scope','$route', 'AlignmentJob', function ($scope, $route, AlignmentJob){
+        $scope.alignmentJob = {
+            alignmentId: null,
+            state: 'unknown',
+            sub_alignments: []
+        };
+        $scope.alignmentRunId = $route.current.params.alignmentRunId
+
+        AlignmentJob.get({
+            alignmentRunId: $scope.alignmentRunId
+        }, function (alignment) {
+            $scope.alignment = alignment;
+            $scope.ident1 = alignment.params.structure1.ident;
+            $scope.ident2 = alignment.params.structure2.ident;
+        });
     }])
 
     .controller('View2', [
@@ -28,7 +59,13 @@ angular.module('ResCtxVis.controllers', [
         function($scope, $route) {
             $scope.identifier1 = $route.current.params.identifier1;
             $scope.identifier2 = $route.current.params.identifier2;
-            $scope.alignmentRunId = $route.current.params.alignmentRunId;
+            if($route.current.params.method) {
+                $scope.alignmentRunId = $route.current.params.alignmentRunId + '-' + $route.current.params.method;
+            } else {
+                $scope.alignmentRunId = $route.current.params.alignmentRunId;
+            }
+
+
         }
     ])
 

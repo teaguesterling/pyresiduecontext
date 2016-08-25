@@ -149,8 +149,11 @@ def get_pdb_selection(code, chain=None, model=0, alignment_id=None, root=None, t
     else:
         path = root
 
-    transformed_path = werkzeug.security.safe_join(root, 'transformed-' + code + '.pdb')
-    if os.path.exists(transformed_path):
+    if root is not None:
+        transformed_path = werkzeug.security.safe_join(root, 'transformed-' + code + '.pdb')
+    else:
+        transformed_path = None
+    if transformed_path is not None and os.path.exists(transformed_path):
         path = transformed_path
         transforms = None
     elif os.path.exists(path + '-transform.txt'):
@@ -216,7 +219,7 @@ def load_alignment_file(io):
             buf.append(line)
         elif len(buf) == 2 and line.startswith('Structure 2'):
             buf.append(line)
-            chunks.append(buffer)
+            chunks.append(buf)
             buf = []
         elif len(chunks) > 0 and len(buf) == 0 and len(line) > 0:
             break

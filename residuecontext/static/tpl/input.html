@@ -1,11 +1,12 @@
 <div class="row">
-    <div class="col-xs-12">
+    <div class="col-sm-6">
         <div class="panel panel-default">
             <div class="panel-heading">
-                <h3 class="panel-title">Choose PDB and Chain</h3>
+                <h3 class="panel-title">Alignment Context Visualization</h3>
             </div>
             <div class="panel-body">
-                <form class="form-inline" ng-submit="viewContext(pdbid, chain, pdbid2, chain2)">
+                <form class="form-inline"
+                      ng-submit="viewContext(pdbid, chain, pdbid2, chain2, mode)">
                     <div class="row">
                         <div class="col-sm-6">
                             <div class="form-group">
@@ -16,7 +17,6 @@
                                 <label for="chain">Chain</label>
                                 <input type="text" class="form-control" id="chain" size="1" ng-model="chain">
                             </div>
-                            <button type="submit" class="btn btn-primary">View</button>
                         </div>
                         <div class="col-sm-6">
                             <div class="form-group">
@@ -27,10 +27,19 @@
                                 <label for="chain">Chain</label>
                                 <input type="text" class="form-control" id="chain2" size="1" ng-model="chain2">
                             </div>
-                            <button type="submit" class="btn btn-primary">Compare</button>
                         </div>
                     </div>
-
+                    <div class="row clearfix">
+                        <div class="col-sm-6">
+                            <div class="form-group" ng-init="mode = true">
+                                <input type="checkbox" checked class="form-control" id="mode" ng-model="mode">
+                                <label for="mode">Compare Multiple Algorithms</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <button type="submit" class="btn btn-primary">View/Compare</button>
+                        </div>
+                    </div>
                 </form>
             </div>
             <div class="panel-footer">
@@ -38,7 +47,10 @@
                 <ul>
                     <li><code ng-click="pdbid='1L5B';chain='A'">PDB: 1L5B, Chain: A</code></li>
                     <li><code ng-click="pdbid='1AZP';chain='A'">PDB: 1AZP, Chain: A</code></li>
-                    <li><code ng-click="pdbid='1C8C';chain='A'">PDB:2 1C8C, Chain: A</code></li>
+                    <li><code ng-click="pdbid='1C8C';chain='A'">PDB: 1C8C, Chain: A</code></li>
+                    <li><code ng-click="pdbid='1L5B';chain='A';pdbid2='1L5E';chain2='A'">
+                        PDB: 1L5B, Chain: A compared to PDB: 1L5E, Chain: A
+                    </code></li>
                     <li><code ng-click="pdbid='1AZP';chain='A';pdbid2='1C8C';chain2='A'">
                         PDB: 1AZP, Chain: A compared to PDB: 1C8C, Chain: A
                     </code></li>

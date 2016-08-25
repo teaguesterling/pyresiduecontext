@@ -20,13 +20,13 @@ from residuecontext.config import (
 from residuecontext.pdbfiles import split_ext_gz, get_pdb_selection
 
 
-RESIDUE_CONTEXT_CLASSPATH = os.path.join(RESIDUE_CONTEXT_DIR, "jars", "*")
+RESIDUE_CONTEXT_CLASSPATH = os.path.join(RESIDUE_CONTEXT_DIR, 'jars', '*')
 RESIDUE_CONTEXT_EMD_PATH = os.path.join(RESIDUE_CONTEXT_DIR, "emd", "runEMD")
 RESIDUE_CONTEXT_ENV = os.environ.copy()
 RESIDUE_CONTEXT_ENV['PATH'] += os.pathsep + RESIDUE_CONTEXT_EMD_PATH
 
 ALIGNMENT_TEMP_PDB = "aligned.pdb"
-ALIGNMENT_OUTPUT = "alignment.txt"
+ALIGNMENT_OUTPUT = "workingalignment.txt"
 
 RESIDUE_CONTEXT_RUNTIME_ARGS = [
     "-Xmx500M",
@@ -69,36 +69,48 @@ def run_residuecontext_alignment(
 
     try:
         exec_dir = tempfile.mkdtemp()
+        working_dir = os.path.join(exec_dir, 'working')
+        os.mkdir(working_dir)
+
+        ident1 = code1.split()
+        ident2 = code2.split()
 
         # Setup command based on parameters
-        cmd = _biojava_base_cmd.bake(
-            cmd_class,
-            "-pdb1",
-            code1,
-            "-pdb2",
-            code2,
-            *BIOJAVA_COMMON_ARGS
+        cmd = _residue_context_cmd.bake(
+            ident1[0].upper(),
+            ident2[0].upper(),
+            ident1[1],
+            ident2[1],
+            "working",
+            *RESIDUE_CONTEXT_COMMON_ARGS
         )
 
-        # BioJava Structure is very picky about names
-        for (pdb, code) in [(pdb1, code1), (pdb2, code2)]:
-            entfile = "ent{}.pdb".format(code.split('.')[0])
-            os.symlink(pdb, os.path.join(exec_dir, entfile))
+        # ResidueContext is picky about names
+        # And also requires all PDB record types to be 6 characters
+        for (pdb, code) in [(pdb1, ident1[0]), (pdb2, ident2[0])]:
+            entfile = "{}.pdb".format(code.upper())
+            with open(pdb) as src, \
+                    open(os.path.join(working_dir, entfile), 'w') as dst:
+                for line in src:
+                    if line == 'END\n':
+                        dst.write('END   \n')
+                    elif line == 'TER\n':
+                        dst.write('TER   \n')
+                    else:
+                        dst.write(line)
 
-        logging.info("Running biojava: {0!s} in {1}".format(cmd, exec_dir))
+        logging.info("Running residue context: {0!s} in {1}".format(cmd, exec_dir))
         cmd(
-            _err_to_out=True,
             _cwd=exec_dir,
-            _out=ALIGNMENT_OUTPUT,
             _err=log,
             _env=RESIDUE_CONTEXT_ENV
         )
 
         pdb2_transformed = get_pdb_selection(
-            code2[:4],
+            code2[:4].upper(),
             chain=code2[4],
-            model=2,
-            root=ALIGNMENT_TEMP_PDB,
+            model=0,
+            root=working_dir,
         )
 
         shutil.move(
@@ -106,12 +118,12 @@ def run_residuecontext_alignment(
             alignment
         )
         shutil.move(
-            os.path.join(exec_dir, ALIGNMENT_TEMP_PDB),
-            superposed
+            os.path.join(working_dir, "{0}.pdb-transform.txt".format(ident2[0].upper())),
+            translation
         )
         shutil.move(
             pdb2_transformed,
-            translation
+            transformed
         )
     except Exception:
         raise

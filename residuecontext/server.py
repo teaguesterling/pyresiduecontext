@@ -10,11 +10,18 @@ from flask import (
     Flask,
     g,
     jsonify,
+    redirect,
     request,
     render_template,
     send_file,
+    url_for,
+    json
 )
 
+from residuecontext.config import (
+    ALIGNMENT_JOB_DIR,
+    ALIGNMENT_DATA_FILE,
+)
 from residuecontext.builder import (
     ResidueContextParams,
     ContextBuilder,
@@ -48,7 +55,7 @@ def after_this_request(f):
 
 @app.route('/contexts/sterics/<ident>.json', defaults={'alignment_id': None, 'kind': None})
 @app.route('/alignments/<alignment_id>/contexts/sterics/<ident>.json', defaults={'kind': None})
-@app.route('/alignments/<alignment_id>/<kind>/contexts/sterics/<ident>.json')
+@app.route('/alignments/<alignment_id>-<kind>/contexts/sterics/<ident>.json')
 def get_context(ident, alignment_id=None, kind=None):
     if kind is not None:
         root = werkzeug.security.safe_join(alignment_id, kind)
@@ -106,7 +113,7 @@ def get_context(ident, alignment_id=None, kind=None):
 
 @app.route('/contexts/phi/<ident>.json', defaults={'alignment_id': None, 'kind': None})
 @app.route('/alignments/<alignment_id>/contexts/phi/<ident>.json', defaults={'kind': None})
-@app.route('/alignments/<alignment_id>/<kind>/contexts/phi/<ident>.json')
+@app.route('/alignments/<alignment_id>-<kind>/contexts/phi/<ident>.json')
 def get_phi_context(ident, alignment_id=None, kind=None):
     if kind is not None:
         root = werkzeug.security.safe_join(alignment_id, kind)
@@ -160,8 +167,8 @@ def get_phi_context(ident, alignment_id=None, kind=None):
 
 @app.route('/contexts/vdw/<ident>.json', defaults={'alignment_id': None, 'kind': None})
 @app.route('/alignments/<alignment_id>/contexts/vdw/<ident>.json', defaults={'kind': None})
-@app.route('/alignments/<alignment_id>/<kind>/contexts/vdw/<ident>.json')
-def get_phi_context(ident, alignment_id=None, kind=None):
+@app.route('/alignments/<alignment_id>-<kind>/contexts/vdw/<ident>.json')
+def get_vdw_context(ident, alignment_id=None, kind=None):
     if kind is not None:
         root = werkzeug.security.safe_join(alignment_id, kind)
     elif alignment_id is not None:
@@ -214,7 +221,7 @@ def get_phi_context(ident, alignment_id=None, kind=None):
 
 @app.route('/pdb/<pdb>.pdb', defaults={'alignment_id': None, 'kind': None})
 @app.route('/alignments/<alignment_id>/pdb/<pdb>.pdb', defaults={'kind': None})
-@app.route('/alignments/<alignment_id>/<kind>/pdb/<pdb>.pdb')
+@app.route('/alignments/<alignment_id>-<kind>/pdb/<pdb>.pdb')
 def get_pdb(pdb, alignment_id=None, kind=None):
     if kind is not None:
         root = werkzeug.security.safe_join(alignment_id, kind)
@@ -226,7 +233,7 @@ def get_pdb(pdb, alignment_id=None, kind=None):
 
 
 @app.route('/alignments/<alignment_id>/alignment.json', defaults={'kind': None})
-@app.route('/alignments/<alignment_id>/<kind>/alignment.json', defaults={'kind': None})
+@app.route('/alignments/<alignment_id>-<kind>/alignment.json')
 def get_alignment_blocks(alignment_id, kind=None):
     alignment = read_alignment_file(alignment_id, kind=kind)
     return jsonify(**alignment)
@@ -234,16 +241,36 @@ def get_alignment_blocks(alignment_id, kind=None):
 
 @app.route('/alignments/<alignment_id>.json')
 def get_alignment_metadata(alignment_id):
-    pass
+    try:
+        alignment_folder = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, str(alignment_id))
+        with open(os.path.join(alignment_folder, ALIGNMENT_DATA_FILE)) as f:
+            params = json.load(f)
+    except Exception:
+        raise abort(404)
+    return jsonify({
+        'alignment_id': alignment_id,
+        'state': 'complete',
+        'params': params,
+        'sub_alignments': {
+            'ce': '{0}/ce'.format(alignment_id),
+            'fatcat': '{0}/fatcat'.format(alignment_id),
+            'rcontext': '{0}/rcontext'.format(alignment_id),
+        }
+    })
 
 
 @app.route('/alignments/', methods=['POST', 'GET'])
-def get_alignment_metadata():
+def submit_alignment():
     code1 = request.values['ident1']
     code2 = request.values['ident2']
 
-    run_alignment_comparisons(1, code1, code2)
-    pass
+    # Synchronous for testing!!!
+    alignment_id = 1
+    run_alignment_comparisons(alignment_id, code1, code2)
+    return jsonify({
+        'alignment_id': alignment_id,
+        'state': 'accepted'
+    }, code=201)
 
 
 @app.route('/')

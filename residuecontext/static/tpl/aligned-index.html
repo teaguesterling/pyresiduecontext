@@ -1,0 +1,23 @@
+<div class="row">
+    <h1>Alignment Job {{ alignmentRunId }}:
+        {{ alignment.params.structure1.ident }} and {{ alignment.params.structure2.ident }}</h1>
+    <h2>View Alignments</h2>
+    <ul>
+        <li>
+            <a href="#/aligned/{{ alignmentRunId }}/rcontext/{{ ident1 }}-{{ ident2 }}">
+                Residue Context
+            </a>
+        </li>
+        <li>
+            <a href="#/aligned/{{ alignmentRunId }}/ce/{{ ident1 }}-{{ ident2 }}">
+                CE
+            </a>
+        </li>
+        <li>
+            <a href="#/aligned/{{ alignmentRunId }}/fatcat/{{ ident1 }}-{{ ident2 }}">
+                FATCAT
+            </a>
+        </li>
+
+    </ul>
+</div>

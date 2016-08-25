@@ -31,6 +31,8 @@ BIOJAVA_RUNTIME_ARGS = [
 BIOJAVA_COMMON_ARGS = [
     "-autoFetch",
     "false",
+    "-pdbDirSplit",
+    "false",
     "-printCE",
     "-outputPDB",
     "-outFile",
@@ -62,33 +64,34 @@ def run_biojava_alignment(
             code1,
             "-pdb2",
             code2,
+            "-pdbFilePath",
+            exec_dir,
             *BIOJAVA_COMMON_ARGS
         )
 
         # BioJava Structure is very picky about names
         for (pdb, code) in [(pdb1, code1), (pdb2, code2)]:
-            entfile = "ent{}.pdb".format(code.split('.')[0])
+            entfile = "pdb{}.ent".format(code.split('.')[0].lower())
             os.symlink(pdb, os.path.join(exec_dir, entfile))
 
         logging.info("Running biojava: {0!s} in {1}".format(cmd, exec_dir))
-        cmd(
-            _err_to_out=True,
+        alignment_result = cmd(
             _cwd=exec_dir,
-            _out=ALIGNMENT_OUTPUT,
             _err=log
         )
+
+        with open(alignment, 'w') as f:
+            f.write(alignment_result.stdout)
+
+        superposed_pdb = os.path.join(exec_dir, ALIGNMENT_TEMP_PDB)
 
         pdb2_transformed = get_pdb_selection(
             code2[:4],
             chain=code2[4],
-            model=2,
-            root=ALIGNMENT_TEMP_PDB,
+            model=1,
+            root=superposed_pdb,
         )
 
-        shutil.move(
-            os.path.join(exec_dir, ALIGNMENT_OUTPUT),
-            alignment
-        )
         shutil.move(
             os.path.join(exec_dir, ALIGNMENT_TEMP_PDB),
             superposed

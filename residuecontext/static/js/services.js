@@ -4,6 +4,30 @@ angular.module('ResCtxVis.services', [
         'ngResource'
     ])
 
+    .factory('AlignmentJob', ['$resource', function ($resource) {
+        return $resource('/alignments/:alignmentRunId.json', {}, {
+            get: {
+                method: 'GET',
+                headers: {'Accept': 'application/json'}
+            },
+            create: {
+                method: 'POST',
+                url: '/alignments/ ',
+                transformRequest: function(obj) {
+                        var str = [];
+                        for(var p in obj) {
+                            str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+                        }
+                        return str.join("&");
+                    },
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                }
+            }
+        });
+    }])
+
     .factory('ContextResourceFactory', ['$resource', function ($resource) {
         return function (kind, alignmentRunId) {
             var resourceBase = '';
