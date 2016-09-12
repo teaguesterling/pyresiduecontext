@@ -28,6 +28,7 @@ from residuecontext.biojava_alignment import (
     run_biojava_alignment,
 )
 from residuecontext.rcontext_alignment import run_residuecontext_alignment
+from residuecontext.dalilite_alignment import run_dalilite_alignment
 from residuecontext.electrostatics import get_electrostatics_grid
 from residuecontext.vanderwaals import get_vanderderwaals_grid
 
@@ -126,15 +127,15 @@ def run_alignment_comparisons(number, code1, code2):
     os.symlink(pdb2, os.path.join(rcontext_dir, "{0}.pdb".format(pdbid2)))
 
     os.mkdir(dali_dir)
-    #run_dali_alignment(
-    #    "{0}.{1}".format(pdbid1, chain1),
-    #    "{0}.{1}".format(pdbid2, chain2),
-    #    alignment=os.path.join(dali_dir, alignment_basename),
-    #    translation=os.path.join(dali_dir, translated_basename),
-    #    superposed=os.path.join(dali_dir, superposed_basename),
-    #    pdb1=pdb1,
-    #    pdb2=pdb2
-    #)
+    run_dalilite_alignment(
+        ident_to_rcontext(pdbid1, chain1),
+        ident_to_rcontext(pdbid2, chain2),
+        alignment=os.path.join(dali_dir, alignment_basename),
+        translation=os.path.join(dali_dir, translated_basename),
+        transformed=os.path.join(dali_dir, transform_basename),
+        pdb1=pdb1,
+        pdb2=pdb2
+    )
     os.symlink(pdb1, os.path.join(dali_dir, "{0}.pdb".format(pdbid1)))
     os.symlink(pdb2, os.path.join(dali_dir, "{0}.pdb".format(pdbid2)))
 

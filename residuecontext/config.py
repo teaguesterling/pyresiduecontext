@@ -8,5 +8,6 @@ REDUCE_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'reduce')
 QNIFFT_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'qnifft')
 BIOJAVA_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'biojava')
 RESIDUE_CONTEXT_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'rcontext')
+DALILITE_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'dalilite')
 
 JAVA_RUNTIME = "java"

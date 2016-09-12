@@ -4,6 +4,8 @@ ignore/*
 ignore
 job-data/*
 
+residuecontext/scripts/rcontext/jars/ResidueContext.jar
+
 *.pyc
 # Byte-compiled / optimized / DLL files
 __pycache__/
