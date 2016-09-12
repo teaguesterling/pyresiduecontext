@@ -73,8 +73,8 @@ def parse_dali_html(path):
             continue
         alignment_lines = block_lines[1:4]
         alignment_data = zip(*[line[6:51] for line in alignment_lines])
-        alignment_next1 = int(alignment_lines[0][51:].strip())
-        alignment_next2 = int(alignment_lines[2][51:].strip())
+        alignment_next1 = int(alignment_lines[0][:51].strip())
+        alignment_next2 = int(alignment_lines[2][:51].strip())
 
         block = []
         for q, i, s in alignment_data:
