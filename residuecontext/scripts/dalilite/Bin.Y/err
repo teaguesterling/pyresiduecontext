@@ -1,0 +1,5 @@
+Can't open perl script "/home/wwwrun/zdata/dali_server/DaliLite_3.3//Bin/forwarder.pl": No such file or directory
+WARNING FROM: perl /home/wwwrun/zdata/dali_server/DaliLite_3.3//Bin/forwarder.pl "#ltop" TRUE "#nclone" "1 1 0"  "#dalidatpath" /home/wwwrun/zdata/dali_server/DaliLite_3.3//DAT/ "#refitol" 2000.0 > dali.default
+Can't open perl script "/home/wwwrun/zdata/dali_server/DaliLite_3.3//Bin/forwarder.pl": No such file or directory
+WARNING FROM: perl /home/wwwrun/zdata/dali_server/DaliLite_3.3//Bin/forwarder.pl "#ltop" TRUE "#nclone" "1 1 0"  "#dalidatpath" ./ "#refitol" 2000.0 > dali.default
+8abp.brk is unknown not a PDB file

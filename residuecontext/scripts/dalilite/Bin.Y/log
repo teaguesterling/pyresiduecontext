@@ -1,0 +1,7 @@
+system_cmd: echo lock  > dali.lock
+system_cmd: perl /home/wwwrun/zdata/dali_server/DaliLite_3.3//Bin/forwarder.pl "#ltop" TRUE "#nclone" "1 1 0"  "#dalidatpath" /home/wwwrun/zdata/dali_server/DaliLite_3.3//DAT/ "#refitol" 2000.0 > dali.default
+
+ Running &check_arguments_and_select_action_DaliLite(@ARGV) 
+system_cmd: perl /home/wwwrun/zdata/dali_server/DaliLite_3.3//Bin/forwarder.pl "#ltop" TRUE "#nclone" "1 1 0"  "#dalidatpath" ./ "#refitol" 2000.0 > dali.default
+
+get_type called with 8abp.brk (0) in argument
