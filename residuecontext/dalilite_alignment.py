@@ -175,7 +175,7 @@ def run_dalilite_alignment(
         logging.info("Preparing PDB inputs in {0}".format(exec_dir))
         _convert_cmd = _dalilite_convert.bake(_cwd=exec_dir, _err=log, _env=DALILITE_ENV)
         for pdb, code in [(pdb1, pdbid1), (pdb2, pdbid2)]:
-            entfile = "{0}.pdb".format(code.lower())
+            entfile = "{0}.pdb".format(code)
             os.symlink(pdb, os.path.join(exec_dir, entfile))
             _convert_cmd(entfile, code)
 
