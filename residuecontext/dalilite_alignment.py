@@ -73,8 +73,8 @@ def parse_dali_html(path):
             continue
         alignment_lines = block_lines[1:4]
         alignment_data = zip(*[line[6:51] for line in alignment_lines])
-        alignment_next1 = int(alignment_lines[0][66:].strip())
-        alignment_next2 = int(alignment_lines[2][66:].strip())
+        alignment_next1 = int(alignment_lines[0][6:].split()[1])
+        alignment_next2 = int(alignment_lines[2][6:].split()[1])
 
         block = []
         for q, i, s in alignment_data:
@@ -82,7 +82,7 @@ def parse_dali_html(path):
                 number += 1
                 n = ' '
             else:
-                n = i
+                n = number
             block.append((q, n, s))
         alignment.append((
             (offset1, offset2),
@@ -107,13 +107,13 @@ def write_faux_dali_alignment_file(io, dali_data):
     print('Align {ident1}.pdb {n1} with {ident2}.pdb {n2}'.format(**dali_data), file=io)
     print('', file=io)
 
-    for (start1, start2), (_end1, _end2), block in dali_data['alignment']:
+    for (start1, start2), block, (_end1, _end2) in dali_data['alignment']:
         buffer1 = ['Chain 1: {0: <4} '.format(start1)]
         buffer2 = ['              ']
         buffer3 = ['Chain 2: {0: <4} '.format(start2)]
         for a, b, c in block:
             buffer1.append(a)
-            buffer2.append(b)
+            buffer2.append(str(b))
             buffer3.append(c)
 
         print(''.join(buffer1), file=io)
@@ -210,15 +210,15 @@ def run_dalilite_alignment(
             write_faux_dali_alignment_file(f, alignment_data)
 
         transform_file = os.path.join(exec_dir, "{0}.pdb-transform.txt".format(ident2[0].upper()))
-        with open(transform_file) as f:
+        with open(transform_file, 'w') as f:
             rot, trans = alignment_data['transform']
-            print('\t'.join(trans), file=f)
-            print('\t'.join(rot[0]), file=f)
-            print('\t'.join(rot[1]), file=f)
-            print('\t'.join(rot[2]), file=f)
+            print('\t'.join(map(str, trans)), file=f)
+            print('\t'.join(map(str, rot[0])), file=f)
+            print('\t'.join(map(str, rot[1])), file=f)
+            print('\t'.join(map(str, rot[2])), file=f)
 
         pdb2_transformed = get_pdb_selection(
-            pdbid2.upper(),
+            pdbid2,
             chain=chain2,
             root=exec_dir,
         )
