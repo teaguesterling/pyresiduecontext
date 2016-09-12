@@ -33,12 +33,14 @@
     </div>
 </div>
 <div class="row">
-    <div class="col-sm-7 col-md-7">
+    <div class="col-sm-12 col-md-12">
         <div class="panel panel-default">
             <div class="panel-body">
                 <ul class="list-inline text-justify selector">
                     <li ng-repeat="(index, heatmap) in thumbnails.heatmaps"
-                         ng-class="{active: index==active.index, highlight: highlights.indexOf(index) !== -1}">
+                         ng-class="{active: index==active.index, highlight: highlights.indexOf(index) !== -1}"
+                         id="res-{{ identifier }}-{{ context.contexts[index].resnum }}"
+                         ng-style="{'border-bottom-color': residueColoring[context.contexts[index].resnum]}">
                         <a ng-click="setActiveContext(index)"
                            title="{{ context.contexts[index].name }} ({{ context.contexts[index].coords.join(', ') }})">
                             {{ context.contexts[index].aacode }}{{ context.contexts[index].resnum }}
@@ -48,8 +50,9 @@
             </div>
         </div>
     </div>
-
-    <div class="col-sm-5 col-md-5" ng-show="active.item != null">
+</div>
+<div class="row">
+    <div class="col-sm-6 col-md-6" ng-show="active.item != null">
         <div class="panel panel-default text-center" ng-if="focus">
             <svg viewBox="0 0 140 100" height="150px">
                 <rect class="histogram-bin"
@@ -97,37 +100,52 @@
         </div>
     </div>
 
-    <div class="col-sm-1 col-md-1" ng-show="active.item != null && false">
-        <div class="btn-group btn-default pull-right" ng-if="false">
-            <button class="btn btn-default"
-                    ng-click="stepActiveContext(-1)">
-                &leftarrow; Prev
-            </button>
-            <button class="btn btn-default" ng-click="toggleAnimate()">
-                {{ animationTimeout === null ? "Start" : "Stop" }} Animation
-            </button>
-            <button class="btn btn-default"
-                    ng-click="stepActiveContext(1)">
-                &rightarrow; Next
-            </button>
+    <div class="col-sm-6 col-md-6" ng-show="active.item != null">
+        <div class="panel panel-default text-center" ng-if="focus">
+            <svg viewBox="0 0 140 100" height="150px">
+                <rect class="histogram-bin"
+                      ng-histogram-bin="{{ $index }}"
+                      fill="rgb({{ 5 * $index }}, 0, {{ 255 - 5 * $index }})"
+                      ng-x="{{ 10 * ($index) * (15 / 50) }}"
+                      ng-width="{{ 10 * ((7 - -7 + 1) / 50) }}"
+                      ng-y="{{ binHeight < .18 ? 90 -  500 * binHeight : 10 }}"
+                      ng-height="{{ binHeight < .18 ? 500 * binHeight : 80 }}"
+                      ng-if="binHeight > 0"
+                      ng-repeat="binHeight in gridHistograms[focus-72] track by $index">
+                    <title>{{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}</title>
+                </rect>
+                <line x1="70"
+                      x2="70"
+                      y1="20"
+                      y2="90"
+                      style="stroke: #CCC; stroke-width: 1"
+                />
+                <line x1="0"
+                      x2="140"
+                      y1="90"
+                      y2="90"
+                      style="stroke: #CCC; stroke-width: 1"
+                />
+                <line x1="70"
+                      x2="70"
+                      y1="10"
+                      y2="20"
+                      style="stroke: #AAA; stroke-width: 1"
+                />
+                <line ng-x1="{{ x }}"
+                      ng-x2="{{ x }}"
+                      y1="95"
+                      y2="100"
+                      style="stroke: #AAA; stroke-width: 1"
+                      ng-repeat="x in [ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140 ]"
+                />
+                <text x="0" y="100" font-family="Verdana" font-size="8">&le;-7</text>
+                <text x="65" y="100" font-family="Verdana" font-size="8">0</text>
+                <text x="60" y="15" font-family="Verdana" font-size="8">&ge;20%</text>
+                <text x="125" y="100" font-family="Verdana" font-size="8">&ge;7</text>
+                <text x="60" y="110" font-family="Verdana" font-size="8">kT</text>
+            </svg>
         </div>
-        <h2>{{ active.item.name }}</h2>
-        <dl class="dl-horizontal small">
-            <dt>Coordinates</dt>
-            <dd>
-                <code ng-repeat="coord in active.item.coords">{{ coord }}{{ $last ? '' : ', '}}</code>
-            </dd>
-            <dt>Residue Type</dt>
-            <dd>{{ active.item.aacode }}</dd>
-            <dt>In Context</dt>
-            <dd>
-                <ul class="list-inline">
-                    <li ng-repeat="highlightIndex in highlights">
-                        {{ context.contexts[highlightIndex].aacode }}{{ context.contexts[highlightIndex].index + 1 }}
-                    </li>
-                </ul>
-            </dd>
-        </dl>
     </div>
 
 </div>

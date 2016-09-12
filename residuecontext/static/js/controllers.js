@@ -6,11 +6,14 @@ angular.module('ResCtxVis.controllers', [
     .controller('PdbSelector', ['$scope', '$location', 'AlignmentJob', function ($scope, $location, AlignmentJob) {
         $scope.loading = false;
         $scope.viewContext = function(pdbid1, chain1, pdbid2, chain2, mode) {
+            var ident1 = chain1 ? pdbid1 + chain1 : pdbid1,
+                ident2 = chain2 ? pdbid2 + chain2 : pdbid2;
+
             if(mode) {
                 $scope.loading = true;
                 AlignmentJob.create({
-                    ident1: pdbid1 + chain1,
-                    ident2: pdbid2 + chain2
+                    ident1: ident1,
+                    ident2: ident2
                 }, function(alignmentJob) {
                     $scope.loading = false;
                     $location.path("/aligned/" + alignmentJob.alignment_id);
@@ -18,9 +21,9 @@ angular.module('ResCtxVis.controllers', [
             } else {
                 $scope.loading = false;
                 if(!pdbid2 || !chain2) {
-                    $location.path("/view/" + pdbid1 + chain1);
+                    $location.path("/view/" + ident1);
                 } else {
-                    $location.path("/comparison/" + pdbid1 + chain1 + "-" + pdbid2 + chain2);
+                    $location.path("/comparison/" + ident1 + "-" + ident2);
                 }
             }
 
@@ -60,12 +63,14 @@ angular.module('ResCtxVis.controllers', [
             $scope.identifier1 = $route.current.params.identifier1;
             $scope.identifier2 = $route.current.params.identifier2;
             if($route.current.params.method) {
+                $scope.originalAlignmentRunId = $route.current.params.alignmentRunId;
+                $scope.alignmentMethod = $route.current.params.method;
                 $scope.alignmentRunId = $route.current.params.alignmentRunId + '-' + $route.current.params.method;
             } else {
                 $scope.alignmentRunId = $route.current.params.alignmentRunId;
+                $scope.originalAlignmentRunId = $scope.alignmentRunId;
+                $scope.alignmentMethod = 'rcontext';
             }
-
-
         }
     ])
 
@@ -91,9 +96,13 @@ angular.module('ResCtxVis.controllers', [
             ResidueContextHeatMap,
             JsMolSphericalHistogram,
             ContextSvgPaths) {
-        if($scope.identifier === undefined) {
-            $scope.identifier = $route.current.params.identifier;
-        }
+        $scope.setIdentifier = function(identifier) {
+            $scope.identifier = identifier;
+            $scope.pdbid = $scope.identifier.slice(0, 4);
+            $scope.chain = $scope.identifier[4];
+            $scope.reload();
+        };
+
         if($scope.alignmentRunId === undefined) {
             $scope.alignmentRunId = $route.current.params.alignmentRunId || null;
         }
@@ -101,8 +110,15 @@ angular.module('ResCtxVis.controllers', [
         var ChainContext = ChainContextFactory($scope.alignmentRunId),
             GridPointContext = GridPointContextFactory($scope.alignmentRunId);
 
-        $scope.pdbid = $scope.identifier.slice(0, 4);
-        $scope.chain = $scope.identifier[4];
+        if($scope.identifier) {
+            $scope.setIdentifier($scope.identifier);
+        }
+        //if($scope.identifier === undefined) {
+        //    $scope.identifier = $route.current.params.identifier;
+        //}
+
+
+
         $scope.jsmol = null;
         $scope.active = {
             index: -1,
@@ -226,29 +242,31 @@ angular.module('ResCtxVis.controllers', [
             }
         };
 
-        $scope.clientTiming = {};
-        var start = Date.now();
+        $scope.reload = function () {
+            $scope.clientTiming = {};
+            var start = Date.now();
 
-        $scope.status = "Downloading Alignment Data";
-        JsMolChainColoring($scope.jsmol, $scope);
+            $scope.status = "Downloading Alignment Data";
+            JsMolChainColoring($scope.jsmol, $scope);
 
-        $scope.status = "Downloading PDB/Generating Residue Contexts";
-        start = Date.now();
-        ChainContext.get({identifier: $scope.identifier}, function (context) {
-            $scope.clientTiming['download'] = (Date.now() - start) / 1000;
-            $scope.clientTiming['transmission'] = ($scope.clientTiming['download'] -
-                context.timing.download - context.timing.generate - context.timing.render
-            );
-            $scope.status = "Generating Residue Context Thumbprints";
-            $scope.context = context;
+            $scope.status = "Downloading PDB/Generating Residue Contexts";
             start = Date.now();
-            $scope.thumbnails = ChainContextHeatMap($scope.context);
-            $scope.polarBinsTemplate = ContextSvgPaths(context);
-            $scope.clientTiming['drawing'] = (Date.now() - start) / 1000;
-            $scope.status = "";
+            ChainContext.get({identifier: $scope.identifier}, function (context) {
+                $scope.clientTiming['download'] = (Date.now() - start) / 1000;
+                $scope.clientTiming['transmission'] = ($scope.clientTiming['download'] -
+                    context.timing.download - context.timing.generate - context.timing.render
+                );
+                $scope.status = "Generating Residue Context Thumbprints";
+                $scope.context = context;
+                start = Date.now();
+                $scope.thumbnails = ChainContextHeatMap($scope.context);
+                $scope.polarBinsTemplate = ContextSvgPaths(context);
+                $scope.clientTiming['drawing'] = (Date.now() - start) / 1000;
+                $scope.status = "";
+            });
+        };
 
 
-        });
     }])
 
     .controller('Drawer', ['$scope', 'SparseHeatMap', 'DenseHeatMap',

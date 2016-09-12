@@ -20,7 +20,7 @@ a[ng-click] {
 
 .selector {
     overflow-y: auto;
-    max-height: 100px;
+    padding-right: 5px;
 }
 
 .selector > .highlight {
@@ -29,11 +29,17 @@ a[ng-click] {
 
 .selector > li {
     padding: 0;
-    font-size: 14px;
+    font-size: small;
+    border-bottom: 2px solid #fff;
+    width: 5%;
+    display: inline-block;
+}
+
+.selector > li > a {
     border: 2px solid #fff;
 }
 
-.selector > li.active {
+.selector > li.active > a {
     border: 2px solid #a94442;
 }
 
@@ -112,4 +118,8 @@ svg .polar-bin {
 
 .spherical-heatmap {
     margin-bottom: 5px;
+}
+
+#header_lab {
+    height: auto;
 }

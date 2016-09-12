@@ -75,18 +75,32 @@ def run_residuecontext_alignment(
         ident1 = code1.split()
         ident2 = code2.split()
 
+        pdbid1 = ident1[0]
+        pdbid2 = ident2[0]
+
+        if len(ident1) > 1:
+            chain1 = ident1[1]
+        else:
+            chain1 = 'A'
+
+        if len(ident2) > 1:
+            chain2 = ident2[1]
+        else:
+            chain2 = 'A'
+
         # Setup command based on parameters
         cmd = _residue_context_cmd.bake(
-            ident1[0].upper(),
-            ident2[0].upper(),
-            ident1[1],
-            ident2[1],
+            pdbid1.upper(),
+            pdbid2.upper(),
+            chain1,
+            chain2,
             "working",
             *RESIDUE_CONTEXT_COMMON_ARGS
         )
 
         # ResidueContext is picky about names
         # And also requires all PDB record types to be 6 characters
+        # But biopython writes them out without padding
         for (pdb, code) in [(pdb1, ident1[0]), (pdb2, ident2[0])]:
             entfile = "{}.pdb".format(code.upper())
             with open(pdb) as src, \
@@ -107,9 +121,8 @@ def run_residuecontext_alignment(
         )
 
         pdb2_transformed = get_pdb_selection(
-            code2[:4].upper(),
-            chain=code2[4],
-            model=0,
+            pdbid2.upper(),
+            chain=chain2,
             root=working_dir,
         )
 
@@ -125,7 +138,7 @@ def run_residuecontext_alignment(
             pdb2_transformed,
             transformed
         )
-    except Exception:
+    except Exception as e:
         raise
     else:
         shutil.rmtree(exec_dir)

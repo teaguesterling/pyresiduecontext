@@ -30,11 +30,31 @@ def get_pdb_id_from_filename(filename):
 
 
 def extract_ident(ident):
-    if len(ident) not in (4, 5):
+    if len(ident) == 6:
+        pdbid = ident[:4]
+        chain = ident[5:] or None
+    elif len(ident) in (4, 5):
+        pdbid = ident[:4]
+        chain = ident[4:] or None
+    else:
         return None, None
-    pdbid = ident[:4]
-    chain = ident[4:] or '_'
     return pdbid, chain
+
+
+def ident_to_biojava(*ident):
+    biojava = ident[0]
+
+    if len(ident) > 1 and ident[1] is not None:
+        biojava += '.' + ident[1]
+    return biojava
+
+
+def ident_to_rcontext(*ident):
+    rc = ident[0]
+
+    if len(ident) > 1 and ident[1] is not None:
+        rc += ' ' + ident[1]
+    return rc
 
 
 def split_ext_gz(path):
@@ -101,11 +121,20 @@ class PDBParser:
 
 
 class ChainSelect(Select):
+    NO_VALUE = '_'
+    NO_CHAIN = None
+    NO_MODEL = 0
 
-    def __init__(self, chain=None, model=0):
+    def __init__(self, chain=NO_CHAIN, model=NO_MODEL):
         super(ChainSelect, self).__init__()
-        self.chain = chain
-        self.model = model
+        if chain == self.NO_VALUE:
+            self.chain = self.NO_CHAIN
+        else:
+            self.chain = chain
+        if model == self.NO_VALUE:
+            self.model = self.NO_MODEL
+        else:
+            self.model = model
 
     def accept_model(self, model):
 
@@ -129,6 +158,20 @@ class ChainSelect(Select):
             return 0
         elif ins_code in ('_', 'A', ' '):
             return 1
+
+    def __repr__(self):
+        selection = []
+
+        if self.model is not None:
+            selection.append('model={0}'.format(self.model))
+
+        if self.chain is not None:
+            selection.append('chain={0}'.format(self.chain))
+
+        if selection:
+            return '<Select {0}>'.format(','.join(selection))
+        else:
+            return '<Select all>'
 
 
 pdb_parser = PDBParser()
@@ -211,22 +254,28 @@ def load_alignment_file(io):
     for line in io:
         line = line.rstrip()
 
-        if title is None:
+        if title is None or line.startswith('Align'):
             title = line
-        elif len(buf) == 0 and line.startswith('Structure 1'):
+        elif len(buf) == 0 and (line.startswith('Structure 1') or line.startswith('Chain 1')):
             buf.append(line)
-        elif len(buf) == 1 and line[:28].strip() == '':
+        elif len(buf) == 1:
             buf.append(line)
-        elif len(buf) == 2 and line.startswith('Structure 2'):
+        elif len(buf) == 2 and (line.startswith('Structure 2') or line.startswith('Chain 2')):
             buf.append(line)
             chunks.append(buf)
             buf = []
-        elif len(chunks) > 0 and len(buf) == 0 and len(line) > 0:
+        elif len(chunks) > 0 and len(buf) == 0 and len(line) > 0 and not set(line.strip()).issubset(set(" .:|")):
             break
 
     title_parts = title.split()
-    structure1_id = title_parts[4] + title_parts[6]
-    structure2_id = title_parts[8] + title_parts[10]
+    if title.startswith('Structure'):
+        structure1_id = title_parts[4] + title_parts[6]
+        structure2_id = title_parts[8] + title_parts[10]
+    elif title.startswith('Align'):
+        structure1_title = os.path.splitext(title_parts[1])[0]
+        structure2_title = os.path.splitext(title_parts[4])[0]
+        structure1_id = structure1_title[:4] + structure1_title[5:]
+        structure2_id = structure2_title[:4] + structure2_title[5:]
 
     alignment = {
         structure1_id: [],
@@ -234,12 +283,18 @@ def load_alignment_file(io):
     }
 
     for structure1_line, blocks, structure2_line in chunks:
-        line_start1 = int(structure1_line[19:27].strip())
-        line_start2 = int(structure2_line[19:27].strip())
-
-        block_nums = [int(num) for num in chunks_of(blocks[28:129], 2, wrap=' '.join)]
-        line1_rescodes = structure1_line[28:129].split()
-        line2_rescodes = structure2_line[28:129].split()
+        if structure1_line.startswith('Structure'):
+            line_start1 = int(structure1_line[19:27].strip())
+            line_start2 = int(structure2_line[19:27].strip())
+            line1_rescodes = structure1_line[28:129]
+            line2_rescodes = structure2_line[28:129]
+            block_nums = [int(num.strip()) for num in chunks_of(blocks[28:129], 2, wrap=''.join)]
+        elif structure1_line.startswith('Chain'):
+            line_start1 = int(structure1_line[8:13].strip())
+            line_start2 = int(structure2_line[8:13].strip())
+            line1_rescodes = structure1_line[14:84]
+            line2_rescodes = structure2_line[14:84]
+            block_nums = [int(num) if num is not ' ' else None for num in blocks[14:84]]
 
         joined_block = zip(
             block_nums,
@@ -248,6 +303,9 @@ def load_alignment_file(io):
         )
 
         for block_num, (resnum1, rescode1), (resnum2, rescode2) in joined_block:
+            if block_num is None:
+                continue
+
             if block_num > len(alignment[structure1_id]):
                 alignment[structure1_id].append({
                     'block_num': block_num,

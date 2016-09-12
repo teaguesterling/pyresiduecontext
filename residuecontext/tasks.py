@@ -19,6 +19,8 @@ from residuecontext.config import (
 from residuecontext.pdbfiles import (
     get_pdb_selection,
     extract_ident,
+    ident_to_biojava,
+    ident_to_rcontext,
 )
 from residuecontext.biojava_alignment import (
     BIOJAVA_CE_CLASS,
@@ -75,15 +77,18 @@ def run_alignment_comparisons(number, code1, code2):
     dali_dir = os.path.join(working_dir, "dali")
 
     alignment_basename = 'alignment.txt'
-    translated_basename = 'transformed-{0}.pdb'.format(code2)
+    translated_basename = 'transformed-{0}.pdb'.format(pdbid2)
     superposed_basename = 'superposed.pdb'
     transform_basename = '{0}.pdb-transform.txt'.format(pdbid2)
+
+    biojava_code1 = ident_to_biojava(pdbid1, chain1)
+    biojava_code2 = ident_to_biojava(pdbid2, chain2)
 
     os.mkdir(ce_dir)
     run_biojava_alignment(
         BIOJAVA_CE_CLASS,
-        "{0}.{1}".format(pdbid1, chain1),
-        "{0}.{1}".format(pdbid2, chain2),
+        biojava_code1,
+        biojava_code2,
         alignment=os.path.join(ce_dir, alignment_basename),
         transformed=os.path.join(ce_dir, translated_basename),
         superposed=os.path.join(ce_dir, superposed_basename),
@@ -96,8 +101,8 @@ def run_alignment_comparisons(number, code1, code2):
     os.mkdir(fatcat_dir)
     run_biojava_alignment(
         BIOJAVA_FATCAT_CLASS,
-        "{0}.{1}".format(pdbid1, chain1),
-        "{0}.{1}".format(pdbid2, chain2),
+        biojava_code1,
+        biojava_code2,
         alignment=os.path.join(fatcat_dir, alignment_basename),
         transformed=os.path.join(fatcat_dir, translated_basename),
         superposed=os.path.join(fatcat_dir, superposed_basename),
@@ -109,8 +114,8 @@ def run_alignment_comparisons(number, code1, code2):
 
     os.mkdir(rcontext_dir)
     run_residuecontext_alignment(
-        "{0} {1}".format(pdbid1, chain1),
-        "{0} {1}".format(pdbid2, chain2),
+        ident_to_rcontext(pdbid1, chain1),
+        ident_to_rcontext(pdbid2, chain2),
         alignment=os.path.join(rcontext_dir, alignment_basename),
         transformed=os.path.join(rcontext_dir, translated_basename),
         translation=os.path.join(rcontext_dir, transform_basename),

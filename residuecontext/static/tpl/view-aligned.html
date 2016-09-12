@@ -1,10 +1,27 @@
+<div>
+    <div id="menu">
+    <div id="menu_left">
+      <ul>
+      <li><a class="first" href="#/">Home</a></li>
+      <li><a href="/#/aligned/{{ originalAlignmentRunId }}">Alignment Summary</a></li>
+      </ul>
+    </div> <!-- menu_left -->
+    <div id="menu_right">
+      <ul>
+      </ul>
+    </div> <!-- menu_right -->
+    <div class="clearfloat"></div>
+  </div> <!-- menu -->
+</div>
 <div class="row">
-     <div class="col-sm-6"
-          ng-init="identifier = identifier1; alignmentRunId = alignmentRunId">
-          <div ng-controller="ContextViewer" ng-include="'/static/tpl/ctxviewer.html'"></div>
+     <div class="col-sm-6">
+          <div ng-controller="ContextViewer"
+               ng-include="'/static/tpl/ctxviewer.html'"
+               ng-init="setIdentifier(identifier1)" ></div>
      </div>
-     <div class="col-sm-6"
-          ng-init="identifier = identifier2; alignmentRunId = alignmentRunId">
-          <div ng-controller="ContextViewer" ng-include="'/static/tpl/ctxviewer.html'"></div>
+     <div class="col-sm-6">
+          <div ng-controller="ContextViewer"
+               ng-include="'/static/tpl/ctxviewer.html'"
+               ng-init="setIdentifier(identifier2)"></div>
      </div>
 </div>

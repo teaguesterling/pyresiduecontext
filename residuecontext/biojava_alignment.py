@@ -12,7 +12,11 @@ from residuecontext.config import (
     BIOJAVA_DIR,
     JAVA_RUNTIME,
 )
-from residuecontext.pdbfiles import split_ext_gz, get_pdb_selection
+from residuecontext.pdbfiles import (
+    split_ext_gz,
+    get_pdb_selection,
+    extract_ident,
+)
 
 
 BIOJAVA_CLASSPATH = os.path.join(BIOJAVA_DIR, "jars", "*")
@@ -33,7 +37,7 @@ BIOJAVA_COMMON_ARGS = [
     "false",
     "-pdbDirSplit",
     "false",
-    "-printCE",
+    "-printFatCat",
     "-outputPDB",
     "-outFile",
     ALIGNMENT_TEMP_PDB
@@ -57,6 +61,12 @@ def run_biojava_alignment(
     try:
         exec_dir = tempfile.mkdtemp()
 
+        pdbid1, chain1 = extract_ident(code1)
+        pdbid2, chain2 = extract_ident(code2)
+
+        pdb1 = pdb1 or '{0}.pdb'.format(pdbid1)
+        pdb2 = pdb2 or '{0}.pdb'.format(pdbid2)
+
         # Setup command based on parameters
         cmd = _biojava_base_cmd.bake(
             cmd_class,
@@ -70,8 +80,8 @@ def run_biojava_alignment(
         )
 
         # BioJava Structure is very picky about names
-        for (pdb, code) in [(pdb1, code1), (pdb2, code2)]:
-            entfile = "pdb{}.ent".format(code.split('.')[0].lower())
+        for pdb, code in [(pdb1, pdbid1), (pdb2, pdbid2)]:
+            entfile = "pdb{0}.ent".format(code.lower())
             os.symlink(pdb, os.path.join(exec_dir, entfile))
 
         logging.info("Running biojava: {0!s} in {1}".format(cmd, exec_dir))
@@ -86,8 +96,8 @@ def run_biojava_alignment(
         superposed_pdb = os.path.join(exec_dir, ALIGNMENT_TEMP_PDB)
 
         pdb2_transformed = get_pdb_selection(
-            code2[:4],
-            chain=code2[4],
+            pdbid2,
+            chain=chain2,
             model=1,
             root=superposed_pdb,
         )
@@ -100,7 +110,7 @@ def run_biojava_alignment(
             pdb2_transformed,
             transformed
         )
-    except Exception:
+    except Exception as e:
         raise
     else:
         shutil.rmtree(exec_dir)

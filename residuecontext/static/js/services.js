@@ -170,18 +170,28 @@ angular.module('ResCtxVis.services', [
 
     .factory('JsMolChainColoring', ['Alignment', function(Alignment) {
         return function(jsmol, $scope) {
-            var setAlignmentColors = function (jsmol, blocks) {
+            var ident = $scope.identifier;
+            $scope.residueColoring = {};
+            var setAlignmentColors = function (jsmol, alignment) {
                 var command = [],
                     colors = [
-                        "red", "green", "blue",
-                        "orange", "purple", "yellow",
-                        "cyan", "magenta"
-                    ] ;
+                        "#B22222", "#B0FFB0", "#FFC0C8", "#FFFF80", "#FFC0FF",
+                        "#B0F0F0", "#FFD070", "#F08080", "#F5DEB3", "#00BFFF",
+                        "#CD5C5C", "#66CDAA", "#9ACD32", "#EE82EE", "#00CED1",
+                        "#00FF7F", "#3CB371", "#00008B", "#BDB76B", "#006400",
+                        "#800000", "#808000", "#800080", "#008080", "#B8860B",
+                        "#C0D0FF"
+                    ],
+                    blocks = alignment[ident]
+                            || alignment[ident.toUpperCase()]
+                            || alignment[ident.toLowerCase()]
+                            || [];
                 for(var i = 0; i < blocks.length; i++) {
-                    var color = colors[i],
+                    var color = colors[i % colors.length],
                         block = blocks[i];
                     for(var j = 0; j < block.indices.length; j++) {
-                        command.push("COLOR " + block.indices[j] + " " + color);
+                        $scope.residueColoring[block.indices[j]] = color;
+                        command.push("COLOR { " + block.indices[j] + ".CA } " + '"' + color + '"');
                     }
                 }
                 var jmolScript = command.join(";");

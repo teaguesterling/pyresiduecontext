@@ -229,7 +229,8 @@ def get_pdb(pdb, alignment_id=None, kind=None):
         root = alignment_id
     else:
         root = None
-    return send_file(get_pdb_selection(pdb, chain=None, model=None, alignment_id=root))
+    pdb = get_pdb_selection(pdb, chain=None, model=None, alignment_id=root)
+    return send_file(pdb, mimetype='chemical/pdb')
 
 
 @app.route('/alignments/<alignment_id>/alignment.json', defaults={'kind': None})

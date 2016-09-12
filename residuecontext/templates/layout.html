@@ -13,7 +13,10 @@
     <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
     <title>ResidueContext Visualizer - {% block page_title %}{% endblock %}</title>
 
+    <link href="http://haddock6.sfsu.edu/smal/sup/favicon.ico" rel="shortcut icon" type="image/x-icon">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='lib/bootstrap/bootstrap.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site-theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap-theme.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}">
 
@@ -24,6 +27,20 @@
     <![endif]-->
 </head>
 <body>
+
+<div id="header">
+  <div id="header_lab">
+    <a class="site" href="http://tintin.sfsu.edu">
+           Biocomputing and Media Research Lab
+    </a>
+  </div> <!-- header_lab -->
+  <div id="header_logo">
+      <a href="http://haddock6.sfsu.edu/">
+      <img alt="Residue Contexts" src="http://tintin.sfsu.edu/images/residueContext.png"/>
+          <span>Residue Context Visualizer</span>
+      </a>
+  </div> <!-- header_logo -->
+</div> <!-- header -->
 
 <div class="{% block content_class %}container{% endblock content_class %}">
     <div role="main">
@@ -47,6 +64,22 @@
     </div>
 </div>
 <!-- end container -->
+
+<div id="footer">
+  <div id="footer_nsf">
+  </div> <!-- footer_nsf -->
+  <div id="footer_sfsu">
+    <a href="http://www.sfsu.edu">
+      <img src="http://www.sfsu.edu/template/images/logobig.png" alt="SF State Home" style="width: auto;">
+    </a>
+    <ul>
+      <li class="first"><a href="http://www.sfsu.edu/">SF State Home</a></li>
+      <li><a href="http://www.sfsu.edu/emailref.htm">Contact</a></li>
+      <li>1600 Holloway Avenue . San Francisco . CA 94132 . Tel (415) 338-1111</li>
+    </ul>
+  </div> <!-- footer_sfsu -->
+  <div class="clearfloat"></div>
+</div> <!-- footer -->
 
 <script src="{{ url_for('static', filename='lib/jquery/jquery.js') }}"></script>
 <script src="{{ url_for('static', filename='lib/bootstrap/bootstrap.js') }}"></script>

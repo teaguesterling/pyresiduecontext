@@ -498,8 +498,11 @@ class ContextBuilder:
         if self.structure.get_level() == 'C':
             self.chain = self.structure
         else:
-            model = self.structure.get_list()[0]  # Only cons\ider the first model
-            self.chain = [chain for chain in model if chain.get_id() == self.params.chain][0]
+            model = self.structure.get_list()[0]  # Only consider the first model
+            if self.params.chain is None:
+                self.chain = list(model)[0]
+            else:
+                self.chain = [chain for chain in model if chain.get_id() == self.params.chain][0]
 
         if self.structure.id != PDBParser.NAME_UNKONWN:
             self.structure_name = self.structure.id
