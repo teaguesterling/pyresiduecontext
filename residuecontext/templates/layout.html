@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <!-- paulirish.com/2008/conditional-stylesheets-vs-css-hacks-answer-neither/ -->
-<!--[if lt IE 7]> <html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
-<!--[if IE 7]>    <html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
-<!--[if IE 8]>    <html class="no-js lt-ie9" lang="en"> <![endif]-->
+<!--[if lt IE 7]>
+<html class="no-js lt-ie9 lt-ie8 lt-ie7" lang="en"> <![endif]-->
+<!--[if IE 7]>
+<html class="no-js lt-ie9 lt-ie8" lang="en"> <![endif]-->
+<!--[if IE 8]>
+<html class="no-js lt-ie9" lang="en"> <![endif]-->
 <!--[if gt IE 8]><!-->
 <html class="no-js" lang="en" {% block html_attributes %}{% endblock %}> <!--<![endif]-->
 <head>
-    <base href="/">
     <meta charset="utf-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -22,24 +24,24 @@
 
     {% block css %}{% endblock %}
     <!--[if lt IE 9]>
-      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
-      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
     <![endif]-->
 </head>
 <body>
 
 <div id="header">
-  <div id="header_lab">
-    <a class="site" href="http://tintin.sfsu.edu">
-           Biocomputing and Media Research Lab
-    </a>
-  </div> <!-- header_lab -->
-  <div id="header_logo">
-      <a href="http://haddock6.sfsu.edu/">
-      <img alt="Residue Contexts" src="http://tintin.sfsu.edu/images/residueContext.png"/>
-          <span>Residue Context Visualizer</span>
-      </a>
-  </div> <!-- header_logo -->
+    <div id="header_lab">
+        <a class="site" href="http://tintin.sfsu.edu">
+            Biocomputing and Media Research Lab
+        </a>
+    </div> <!-- header_lab -->
+    <div id="header_logo">
+        <a href="http://haddock6.sfsu.edu/">
+            <img alt="Residue Contexts" src="http://tintin.sfsu.edu/images/residueContext.png"/>
+            <span>Residue Context Visualizer</span>
+        </a>
+    </div> <!-- header_logo -->
 </div> <!-- header -->
 
 <div class="{% block content_class %}container{% endblock content_class %}">
@@ -47,14 +49,14 @@
         <div class="row">
             <div class="col-md-12" id="flash-messages">
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, message in messages %}
-                            <div class="alert alert-{{ category }}">
-                                <a class="close" title="Close" href="#" data-dismiss="alert">&times;</a>
-                                {{ message }}
-                            </div><!-- end .alert -->
-                        {% endfor %}
-                    {% endif %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    <a class="close" title="Close" href="#" data-dismiss="alert">&times;</a>
+                    {{ message }}
+                </div><!-- end .alert -->
+                {% endfor %}
+                {% endif %}
                 {% endwith %}
             </div>
             <!-- end col-md -->
@@ -66,19 +68,19 @@
 <!-- end container -->
 
 <div id="footer">
-  <div id="footer_nsf">
-  </div> <!-- footer_nsf -->
-  <div id="footer_sfsu">
-    <a href="http://www.sfsu.edu">
-      <img src="http://www.sfsu.edu/template/images/logobig.png" alt="SF State Home" style="width: auto;">
-    </a>
-    <ul>
-      <li class="first"><a href="http://www.sfsu.edu/">SF State Home</a></li>
-      <li><a href="http://www.sfsu.edu/emailref.htm">Contact</a></li>
-      <li>1600 Holloway Avenue . San Francisco . CA 94132 . Tel (415) 338-1111</li>
-    </ul>
-  </div> <!-- footer_sfsu -->
-  <div class="clearfloat"></div>
+    <div id="footer_nsf">
+    </div> <!-- footer_nsf -->
+    <div id="footer_sfsu">
+        <a href="http://www.sfsu.edu">
+            <img src="http://www.sfsu.edu/template/images/logobig.png" alt="SF State Home" style="width: auto;">
+        </a>
+        <ul>
+            <li class="first"><a href="http://www.sfsu.edu/">SF State Home</a></li>
+            <li><a href="http://www.sfsu.edu/emailref.htm">Contact</a></li>
+            <li>1600 Holloway Avenue . San Francisco . CA 94132 . Tel (415) 338-1111</li>
+        </ul>
+    </div> <!-- footer_sfsu -->
+    <div class="clearfloat"></div>
 </div> <!-- footer -->
 
 <script src="{{ url_for('static', filename='lib/jquery/jquery.js') }}"></script>

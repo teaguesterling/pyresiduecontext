@@ -13,6 +13,12 @@
         };
     }])
 
+    .filter('min', [function () {
+        return function (input,min) {
+            return Math.min(input, min);
+        };
+    }])
+
     .filter('joinBy', [function () {
         return function (input,delimiter) {
             return (input || []).join(delimiter || ',');
@@ -51,7 +57,7 @@
                     ].join(';'),
                     options = {
                         width: "100%",
-                        height: 500,
+                        height: 575,
                         debug: false,
                         use: "JAVA HTML5 WEBGL",   // JAVA HTML5 WEBGL are all options
                         jarPath: "/static/lib/jsmol/java",
@@ -119,6 +125,27 @@
             link: function (scope, element, attrs) {
                 var index = parseInt(attrs['ngPolarBin']),
                     item = scope.active.item,
+                    value = attrs['ngPolarBinValue'];
+                element.click(function(e) {
+                    scope.toggleFocus(index);
+                    e.stopPropagation();
+                });
+                value = value === undefined ? 0 : value;
+                if(typeof value === 'string' && value && value[0] == '#') {
+                    element.attr('fill', 'url(' + scope.absUrl + value + ')');
+                } else if(value > 0) {
+                    var color = color = scope.getContextBinColor(value);
+                    element.attr('fill', 'rgb(' + ([color, color, color].join(',')) + ')');
+                }
+            }
+        };
+    }])
+
+    .directive('ngPolarBinGrad', ['$compile', function($compile) {
+        return {
+            link: function (scope, element, attrs) {
+                var index = parseInt(attrs['ngPolarBin']),
+                    item = scope.active.item,
                     value = item.histogram[index] === undefined ? 0 : item.histogram[index],
                     color = scope.getContextBinColor(value);
                 element.click(function(e) {
@@ -157,7 +184,7 @@
     }])
 
     // Add special attributes to handle the mess of SVG attribute errors
-    angular.forEach(['x', 'y', 'width', 'height', 'd'], function (attrName) {
+    angular.forEach(['x', 'y', 'width', 'height', 'd', 'offset', 'color', 'stop-opacity'], function (attrName) {
         var directiveName = 'ng' + attrName[0].toUpperCase() + attrName.slice(1);
         directives.directive(directiveName, function () {
             return function (scope, element, attrs) {

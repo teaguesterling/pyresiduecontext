@@ -77,6 +77,7 @@ angular.module('ResCtxVis.controllers', [
     .controller('ContextViewer', [
         '$scope',
         '$route',
+        '$location',
         '$interval',
         'ChainContextFactory',
         'GridPointContextFactory',
@@ -88,6 +89,7 @@ angular.module('ResCtxVis.controllers', [
         function (
             $scope,
             $route,
+            $location,
             $interval,
             ChainContextFactory,
             GridPointContextFactory,
@@ -96,6 +98,9 @@ angular.module('ResCtxVis.controllers', [
             ResidueContextHeatMap,
             JsMolSphericalHistogram,
             ContextSvgPaths) {
+
+        $scope.absUrl = $location.protocol() + "://" + $location.host() + ":" + $location.port()    ;
+
         $scope.setIdentifier = function(identifier) {
             $scope.identifier = identifier;
             $scope.pdbid = $scope.identifier.slice(0, 4);
@@ -109,15 +114,6 @@ angular.module('ResCtxVis.controllers', [
 
         var ChainContext = ChainContextFactory($scope.alignmentRunId),
             GridPointContext = GridPointContextFactory($scope.alignmentRunId);
-
-        if($scope.identifier) {
-            $scope.setIdentifier($scope.identifier);
-        }
-        //if($scope.identifier === undefined) {
-        //    $scope.identifier = $route.current.params.identifier;
-        //}
-
-
 
         $scope.jsmol = null;
         $scope.active = {
@@ -175,13 +171,22 @@ angular.module('ResCtxVis.controllers', [
                 return Math.max(0, val !== undefined ? Math.round(255 - val * scale,0) : 255);
             };
 
-            $scope.gridHistograms = null;
+            $scope.esGridHistograms = null;
             GridPointContext.get(
                 {
                     identifier: $scope.identifier,
                     coords: $scope.active.item.coords.join(' ')
                 }, function (data) {
-                    $scope.gridHistograms = data.histograms;
+                    $scope.esGridHistograms = data.histograms;
+                    $scope.esGridHistogramsBrief = [];
+                    for(var idx = 0; idx < $scope.esGridHistograms.length; idx++) {
+                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
+                            rebinSize = $scope.esGridHistograms[idx].length / brief.length;
+                        for(var jdx = 0; jdx < $scope.esGridHistograms[idx].length; jdx++) {
+                            brief[Math.floor(jdx / rebinSize)] += $scope.esGridHistograms[idx][jdx];
+                        }
+                        $scope.esGridHistogramsBrief.push(brief);
+                    }
                 }
             );
             $scope.resetHighlights();
@@ -200,9 +205,10 @@ angular.module('ResCtxVis.controllers', [
         $scope.setActiveBinHighlights = function (binNumber) {
             if($scope.focus !== undefined) {
                 var current = $scope.getContextBinColor($scope.active.item.histogram[$scope.focus]);
-                angular.element("#polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
-                    'fill': 'rgb(' + [current, current, current].join(',') + ')',
-                    'stroke': '#ddd'
+                angular.element(".polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
+                    'stroke': '#ddd',
+                    'stroke-width': '1',
+                    'fill': ""
                 });
             }
             $scope.focus = binNumber;
@@ -211,10 +217,10 @@ angular.module('ResCtxVis.controllers', [
             if($scope.sphericalBinData !== null) {
                 $scope.sphericalBinData.setActiveBin(binNumber);
             }
-
-            angular.element("#polar-bin-" + $scope.pdbid + "-" + binNumber).css({
-                'fill': '#a94442',
-                'stroke': '#000'
+            angular.element(".polar-bin-" + $scope.pdbid + "-" + binNumber).css({
+                'stroke': '#a94442',
+                'stroke-width': '2',
+                'fill': '#a94442'
             });
             $scope.$apply();
         };
@@ -222,9 +228,10 @@ angular.module('ResCtxVis.controllers', [
         $scope.resetHighlights = function (force) {
             if($scope.focus !== undefined && $scope.focus !== null) {
                 var current = $scope.getContextBinColor($scope.active.item.histogram[$scope.focus]);
-                angular.element("#polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
-                    'fill': 'rgb(' + [current, current, current].join(',') + ')',
-                    'stroke': '#ddd'
+                angular.element(".polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
+                    'stroke': '#ddd',
+                    'stroke-width': 1,
+                    'fill': ""
                 });
             }
             if($scope.sphericalBinData !== null) {
@@ -267,6 +274,9 @@ angular.module('ResCtxVis.controllers', [
         };
 
 
+        if($scope.identifier) {
+            $scope.setIdentifier($scope.identifier);
+        }
     }])
 
     .controller('Drawer', ['$scope', 'SparseHeatMap', 'DenseHeatMap',

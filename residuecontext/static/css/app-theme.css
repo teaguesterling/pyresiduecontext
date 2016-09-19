@@ -36,11 +36,15 @@ a[ng-click] {
 }
 
 .selector > li > a {
-    border: 2px solid #fff;
+    font-family: fixed;
+    font-size: .8em;
 }
 
 .selector > li.active > a {
-    border: 2px solid #a94442;
+    background: #a94442;
+    color: white;
+    display: inline-block;
+    width: 100%;
 }
 
 .heatmaps {
@@ -122,4 +126,15 @@ svg .polar-bin {
 
 #header_lab {
     height: auto;
+}
+
+.active-hist-mode-selector {
+    text-align: center;
+}
+
+.active-hist-mode-selector .btn-group {
+    margin: 0 auto;
+    text-align: center;
+    width: inherit;
+    display: inline-block;
 }

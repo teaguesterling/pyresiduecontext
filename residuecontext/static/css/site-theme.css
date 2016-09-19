@@ -4,7 +4,7 @@
 /* Page header */
 #header         {background:#333333;}
 
-#header_lab         {padding-left:30px; padding-top:5px; height:20px; background:#333333;}
+#header_lab         {padding:5px 30px 0 15px; height:20px; background:#333333; float: right;}
 #header_lab a       {color:#cccccc; text-transform: uppercase; text-decoration:none;}
 #header_lab a:focus,
 #header_lab a:hover {color:#eebb44;}

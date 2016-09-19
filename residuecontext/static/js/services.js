@@ -522,13 +522,23 @@ angular.module('ResCtxVis.services', [
                         b00 = zenithBins[i][j],
                         b01 = zenithBins[i][j1],
                         b10 = zenithBins[i1][j],
-                        b11 = zenithBins[i1][j1];
+                        b11 = zenithBins[i1][j1],
+                        cx1 = (b00.x + b01.x) / 2,
+                        cx2 = (b10.x + b11.x) / 2,
+                        cy1 = (b00.y + b01.y) / 2,
+                        cy2 = (b10.y + b11.y) / 2;
                     bins.push({
                         index: index,
                         azimuth: b00.a,
                         zenith: b00.z,
                         azimuthIndex: j,
                         zenithIndex: i,
+                        grad: {
+                            x1: cx1,
+                            x2: cx2,
+                            y1: cy1,
+                            y2: cy2,
+                        },
                         path: [
                             "M" + b00.x + "," + b00.y,
                             "L" + b10.x + "," + b10.y,

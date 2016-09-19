@@ -124,6 +124,74 @@ def create_grid_histogram(phi, center, bins=50, extents=None, params=None, **kwa
     return bin_histograms
 
 
+def create_paired_grid_histogram(vdwA, vdwB, center, bins=50, extents=None, params=None, **kwargs):
+    coordsA, valuesA = get_grid_sphere_at_point(vdwA, center,
+                                              boxStep=kwargs.pop('boxStep', None),
+                                              boxSize=kwargs.pop('boxSize', np.e ** 2))
+
+    coordsB, valuesB = get_grid_sphere_at_point(vdwB, center,
+                                                boxStep=kwargs.pop('boxStep', None),
+                                                boxSize=kwargs.pop('boxSize', np.e ** 2))
+
+    params = params or SphericalHistogramParams(**kwargs)
+
+    grid_pointsA = coordsA.transpose()
+    pointsA = grid_pointsA.reshape(-1, 3)
+
+    grid_pointsB = coordsB.transpose()
+    pointsB = grid_pointsB.reshape(-1, 3)
+
+    builder = SphericalHistogramBuilder(params)
+
+    builder.set_coordinates([center], pointsA)
+    histogramA, inverseA = builder.run()
+
+    builder.set_coordinates([center], pointsB)
+    histogramB, inverseB = builder.run()
+
+    if extents is None:
+        extentsA = valuesA.min(), valuesA.max()
+        extentsB = valuesB.min(), valuesB.max()
+    else:
+        extentsA = extents
+        extentsB = extents
+
+    num_spherical_bins = histogramA.shape[-1]
+    bin_a_offset = bins//2  # B is negative A is positive
+    half_bins = bin_a_offset - 1  # Leave a shared 0
+
+    inner_bin_boundaries = np.linspace(extentsA[0], extentsA[1], half_bins)
+    bin_histograms = np.empty((num_spherical_bins, bins))
+
+    clippedA = np.clip(valuesA, extentsA[0], extentsA[1])
+    flattenedA = clippedA.ravel()
+    mappingsA = inverseA.transpose()[0]
+
+    clippedB = np.clip(valuesB, extentsB[0], extentsB[1])
+    flattenedB = clippedB.ravel()
+    mappingsB = inverseB.transpose()[0]
+
+    for bin_index in range(num_spherical_bins):
+        in_binA = mappingsA == bin_index
+        in_binB = mappingsB == bin_index
+        selectionA = flattenedA[in_binA]
+        selectionB = flattenedB[in_binB]
+
+        in_sphereA = selectionA
+        num_in_sphereA = len(in_sphereA)
+
+        in_sphereB = selectionB
+        num_in_sphereB = len(in_sphereB)
+
+        if num_in_sphereA == 0:
+            bin_histograms[bin_index] = 0
+        else:
+            bin_histogram, _boundaries = np.histogram(in_sphere, bins=inner_bin_boundaries)
+            bin_histograms[bin_index] = bin_histogram / num_in_sphere
+
+    return bin_histograms
+
+
 class InvalidContextBuilderState(Exception):
     pass
 

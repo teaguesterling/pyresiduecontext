@@ -1,135 +1,97 @@
 #!/usr/bin/env python
-# ryan g. coleman, ryangc@mail.med.upenn.edu
-# kim sharp lab
-# phi.py enables read/write of binary phi-maps from delphi
-# usage is import, then pass in filename to object creation
-# extensions written in bks lab, 2012, and by extensions i mean reading
-# phimap files written by a pgf, 32-bit version of delphi that is being
-# used in dockblaster, etc. these files are always big-endian despite any
-# claims by the OS to the contrary
 
-import struct
+from __future__ import division, print_function
+
 import array
 import sys
-import string
-import os
+import struct
 import math
 import copy
-#import gzip, bz2 #for compressed file reading (not enabled yet)
 
-# format follows
-#       character*20 toplabel
-#       character*10 head,character*60 title
-#       real*4 phi(65,65,65) #or now 193,193,193
-#       character*16 botlabel
-#       real*4 scale, oldmid(3)
+import numpy as np
 
 
-def grid_size_from_file_size(file_size):
-    grid_bytes = file_size - 162  # 162 is number of fixed bytes in a grid file
-    grid_points = grid_bytes / 4.0  # 4 bytes per float
-    grid_size = grid_points ** (1.0/3.0)  # Cube root of grid points is size
-    grid_size = int(math.ceil(grid_size))
-    return grid_size
+def read_outchem(outchem):
+    lines = list(outchem)
+
+    center = np.loadtxt(lines[9:10], dtype=np.float)
+    spacing = float(lines[14].strip())
+    gridpoints = np.loadtxt(lines[16:17], dtype=np.float)
+
+    return center, spacing, gridpoints
+
+
+def load_vdw_grids(outchem, vdwfile):
+    with open(outchem) as f:
+        center, spacing, gridpoints = read_outchem(outchem)
+
+    scale = 1.0 / spacing
+    size = max(*gridpoints)
+
+    vdwA, vdwB = load_vdwgrids(vdwfile, gridpoints=gridpoints, byteswap=True)
+
+
+
+    vdw_attractive = vanderwaals(vdwA,
+                                 scale=scale,
+                                 center=center,
+                                 size=size,
+                                 name='Attractive VdW')
+
+    vdw_repulsive = vanderwaals(vdwB,
+                                 scale=scale,
+                                 center=center,
+                                 size=size,
+                                 name='Repulsive VdW')
+
+    return vdw_attractive, vdw_repulsive
+
+
+def load_vdwgrids(vdwfile, gridpoints=None, byteswap=True):
+    if byteswap:
+        vdw = np.fromfile(vdwfile, dtype='>f4')
+    else:
+        vdw = np.fromfile(vdwfile, dtype='<f4')
+
+    vdwA, vdwB = vdw.reshape((2, -1))[:,1:-1]
+
+    if gridpoints:
+        vdwA = vdwA.reshape(*gridpoints, order='f')
+        vdwB = vdwB.reshape(*gridpoints, order='f')
+    else:
+        vdwA = vdwA.reshape(order='f')
+        vdwB = vdwB.reshape(order='f')
+
+    return vdwA, vdwB
 
 
 class vanderwaals(object):
 
-  def __init__(self, vdwFileName=False, is64=False, byteswap=True):
+  def __init__(self, array, scale, size, center=(0,0,0), name="VDW Grid"):
     '''reads the phi file from disk'''
-    if gridSizes is None:
-      gridSizes = (None,)
 
-    self.oldmid = [0., 0., 0.]
+    self.gridDimension = size
+    self.scale = scale
+    self.vdwArray = array
+    self.oldmid = center
+    self.toplabel = name
+    self.title = ""
+    self.head = ""
+    self.botlabel = ""
     self.__minsmaxs = None
     self.__boundaries = None
-    if vdwFileName:  # otherwise just creating an empty phi map for writing
-      for gridSize in gridSizes:
-        if gridSize is None:
-            gridSize = grid_size_from_file_size(os.stat(phiFileName).st_size)
-            print("Determined size to be", gridSize)
-        try:
-          phiFile = open(phiFileName, 'rb')  # b is for binary, r is for read
-          tempArray = array.array('f')
-          junk = struct.unpack('4s', phiFile.read(4))
-          (check,) = struct.unpack('4s', phiFile.read(4))
-          check = check.decode('ascii')
-          if str(check) == "now ":  # this changed, but this is now correct
-            print("32bit phimap")
-            pass
-          else:
-            print("64bit phimap")
-            is64 = True
-          if not is64:
-            (temptop,) = struct.unpack('16s', phiFile.read(16))
-            temptop = temptop.decode('ascii')
-            self.toplabel = check + temptop
-          else:
-            (temptop,) = struct.unpack('20s', phiFile.read(20))
-            temptop = temptop.decode('ascii')
-            self.toplabel = temptop
-          #print "toplabel:", self.toplabel
-          junk = struct.unpack('8s', phiFile.read(8))
-          if is64:
-            junk = struct.unpack('8s', phiFile.read(8))
-          (self.head,) = struct.unpack('10s', phiFile.read(10))
-          self.head = self.head.decode('ascii')
-          #print "head:", self.head
-          (self.title,) = struct.unpack('60s', phiFile.read(60))
-          self.title = self.title.decode('ascii')
-          #print "title:", self.title
-          junk = struct.unpack('8s', phiFile.read(8))
-          if is64:
-            junk = struct.unpack('8s', phiFile.read(8))
-          #next line raises error if grid too big
-          #GxGxG -> packed into an array xyz order samplePhi = array.array('f')
-          tempArray.fromfile(phiFile, gridSize**3)
-          if byteswap:
-             tempArray.byteswap()
-          #for count in xrange(gridSize**3):
-          #  bats = phiFile.read(4) #raw characters
-          #  blah = struct.unpack('>f', bats)[0] #always big-endian
-          #  tempArray.append(blah)
-          junk = struct.unpack('8s', phiFile.read(8))
-          if is64:
-            junk = struct.unpack('8s', phiFile.read(8))
-          self.gridDimension = gridSize
-          self.phiArray = tempArray
-          break  # read successfully, just go on and read the last bits
-        except EOFError:
-          phiFile.close()
-      (self.botlabel,) = struct.unpack('16s', phiFile.read(16))
-      self.botlabel = self.botlabel.decode('ascii')
-      #print "botlabel:", self.botlabel
-      junk = struct.unpack('8s', phiFile.read(8))
-      if is64:
-        junk = struct.unpack('8s', phiFile.read(8))
-      #>ffff on next line forces big-endian reading
-      if byteswap:
-          (self.scale, self.oldmid[0], self.oldmid[1], self.oldmid[2],) = \
-              struct.unpack('>ffff', phiFile.read(16))
-      else:
-          (self.scale, self.oldmid[0], self.oldmid[1], self.oldmid[2],) = \
-              struct.unpack('ffff', phiFile.read(16))
-      #print "scale, oldmid:", self.scale, self.oldmid
-      junk = struct.unpack('4s', phiFile.read(4))
-      phiFile.close()
 
   def copyPhi(self):
     '''make a deep copy of the phimap that can be edited without disturbing the
     original.'''
-    newPhi = phi()
-    newPhi.oldmid = self.oldmid
-    newPhi.toplabel = self.toplabel
-    newPhi.head = self.head
-    newPhi.title = self.title
-    newPhi.botlabel = self.botlabel
-    newPhi.scale = self.scale
-    newPhi.phiArray = self.phiArray
-    newPhi.gridDimension = self.gridDimension
-    newPhi.__minsmaxs = None
-    newPhi.__boundaries = None
-    return newPhi
+    newVdw = vanderwaals()
+    newVdw.oldmid = self.oldmid
+    newVdw.scale = self.scale
+    newVdw.vdwArray = self.vdwArray
+    newVdw.gridDimension = self.gridDimension
+    newVdw.__minsmaxs = None
+    newVdw.__boundaries = None
+    return newVdw
 
   def write(self, phiFileName=False):
     '''write data to member data structure manually,
@@ -137,7 +99,7 @@ class vanderwaals(object):
     the pad lines reproduce the binary padding of an original
     fortran formatted phi file'''
     if phiFileName:  # do nothing if no filename given
-      outArray = copy.deepcopy(self.phiArray)
+      outArray = copy.deepcopy(self.vdwArray)
       outArray.byteswap()  # switch endianness back, only for writing
       phiFile = open(phiFileName, 'wb')  # b may be unnecessary, have to check
       phiFile.write(struct.pack('4b', 0, 0, 0, 20))  # pad
@@ -159,11 +121,11 @@ class vanderwaals(object):
       phiFile.write(struct.pack('4b', 0, 0, 0, 16))  # pad
       phiFile.close()
 
-  def trimPhi(self, newmidIndices, newSize):
+  def trimVdw(self, newmidIndices, newSize):
     '''for a new center index and a desired cubic grid size, trim the current
     phimap and return the new trimmed phimap'''
     plusMinus = (newSize - 1) / 2  # how many to add or subtract from the center
-    newPhi = phi()
+    newPhi = vanderwaals()
     newPhi.oldmid = self.getXYZlist(newmidIndices)  # only change of these data
     newPhi.toplabel = self.toplabel
     newPhi.head = self.head
@@ -188,7 +150,7 @@ class vanderwaals(object):
     #print "total array size is:", len(newPhi.phiArray)
     return newPhi
 
-  def findPhiCorners(self, newmidIndices, newSize):
+  def findVdwCorners(self, newmidIndices, newSize):
     '''for a new center index and a desired cubic grid size, find the new
     corners of the phimap'''
     plusMinus = (newSize - 1) / 2  # how many to add or subtract from the center
@@ -200,7 +162,7 @@ class vanderwaals(object):
          newmidIndices[2] + plusMinus + 1]
     return lowerLeft, upperRight
 
-  def findNewPhiIndices(self, newmidIndices, newSize):
+  def findNewVdwIndices(self, newmidIndices, newSize):
     '''for a new center index and a desired cubic grid size, return xyz coords
     of each coordinate in the new box'''
     coordList = []
@@ -226,30 +188,30 @@ class vanderwaals(object):
 
   def getMinMaxValues(self):
     '''finds the minimum and maximum value'''
-    return min(self.phiArray), max(self.phiArray)
+    return min(self.vdwArray), max(self.vdwArray)
 
   def getMeanAbsoluteValues(self):
     '''takes the abs value of each phi value, then the average'''
     sum = 0.0
-    for value in self.phiArray:
+    for value in self.vdwArray:
       sum += math.fabs(value)
-    return sum/float(len(self.phiArray))
+    return sum/float(len(self.vdwArray))
 
   def getMeanValues(self):
     '''mean of all phi values'''
     sum = 0.0
-    for value in self.phiArray:
+    for value in self.vdwArray:
       sum += value
-    return sum/float(len(self.phiArray))
+    return sum/float(len(self.vdwArray))
 
   def getMaxValues(self):
     '''just the max'''
-    return max(self.phiArray)
+    return max(self.vdwArray)
 
   def countValues(self):
     '''counts the occurence of each value'''
     counts = {}
-    for value in self.phiArray:
+    for value in self.vdwArray:
       if value in counts:
         counts[value] += 1
       else:
@@ -265,7 +227,7 @@ class vanderwaals(object):
       ends[1] = useMax
     bars = int(math.ceil((ends[1] - ends[0]) / width) + 1)
     counts = [0 for x in range(bars)]
-    for value in self.phiArray:
+    for value in self.vdwArray:
       if value >= ends[0] and value <= ends[1]:
         counts[int(math.floor((value - ends[0]) / width))] += 1
     return counts
@@ -287,7 +249,7 @@ class vanderwaals(object):
   def getValue(self, xInd, yInd, zInd):
     '''for a given set of indices, return the value in the array'''
     index = int(zInd*(self.gridDimension**2.) + yInd*self.gridDimension + xInd)
-    return self.phiArray[index]
+    return self.vdwArray[index]
 
   def getValueListCheckBounds(self, xyzList, retValueIfBad=0):
     '''passes to getValueCheckBounds'''
@@ -311,18 +273,18 @@ class vanderwaals(object):
   def setValue(self, xInd, yInd, zInd, value):
     '''puts the value into the phi array'''
     index = int(zInd*(self.gridDimension**2.) + yInd*self.gridDimension + xInd)
-    self.phiArray[index] = value
+    self.vdwArray[index] = value
 
   def transform(self, threshold=6.0, inside=-2.0, outside=-1.0):
     '''for every value in the array, change it to inside or outside,
     destructively overwrites old values'''
-    for index in range(len(self.phiArray)):
-      value = self.phiArray[index]
+    for index in range(len(self.vdwArray)):
+      value = self.vdwArray[index]
       if value < threshold:
         where = outside
       else:
         where = inside
-      self.phiArray[index] = where
+      self.vdwArray[index] = where
 
   def translate(self, newmid):
       oldmin = self.oldmid
@@ -350,10 +312,10 @@ class vanderwaals(object):
   def modify(self, other, change):
     '''modify other to self, destructively write over self. allows +-/etc
     presume without checking that grids are compatible (same mid etc)'''
-    for index in range(len(self.phiArray)):
-      value = other.phiArray[index]
+    for index in range(len(self.vdwArray)):
+      value = other.vdwArray[index]
       #save = self.phiArray[index]
-      self.phiArray[index] += (value * change)
+      self.vdwArray[index] += (value * change)
       #if self.phiArray[index] != 0.0:
       #  print self.phiArray[index], value, save, index
 
@@ -418,14 +380,14 @@ class vanderwaals(object):
         newGridSize = possibleGridSize
     self.gridDimension = newGridSize
     #now take care of the grid
-    self.phiArray = array.array('f')
+    self.vdwArray = array.array('f')
     for z in range(self.gridDimension):
       for y in range(self.gridDimension):
         for x in range(self.gridDimension):
           if x < lens[0] and y < lens[1] and z < lens[2]:
-            self.phiArray.append(grid[x][y][z][0])
+            self.vdwArray.append(grid[x][y][z][0])
           else:  # outside real grid
-            self.phiArray.append(defaultValue)
+            self.vdwArray.append(defaultValue)
     #scale and oldmid are all that is left
     self.scale = 1./gridSize
     for coord in range(3):
@@ -478,13 +440,13 @@ class vanderwaals(object):
     fraction = [0. for count in range(3)]
     for count in range(3):
       fraction[count] = point[count] - gridPoint[count]
-    returnPhiValue = values[0] * fraction[0] * fraction[1] * fraction[2] + \
+    returnVdwValue = values[0] * fraction[0] * fraction[1] * fraction[2] + \
         values[1] * fraction[0] * fraction[1] + \
         values[2] * fraction[0] * fraction[2] + \
         values[3] * fraction[1] * fraction[2] + values[4] * fraction[0] + \
         values[5] * fraction[1] + values[6] * fraction[2] + values[7]
     #print values, fraction, returnPhiValue
-    return returnPhiValue
+    return returnVdwValue
 
 
   def trimToBoxCenterAndSize(self, corners, center, dimensions):
@@ -514,27 +476,7 @@ class vanderwaals(object):
     returns the new trimmed phimap'''
     centerIndices, newSize = self.trimToBoxCenterAndSize(
         corners, center, dimensions)
-    return self.trimPhi(centerIndices, newSize), centerIndices, newSize
+    return self.trimVdw(centerIndices, newSize), centerIndices, newSize
 
 if __name__ == '__main__':
-  #if (len(sys.argv) > 1): #want to test output of phimaps
-  #  phiData.write(sys.argv[2])
-  if (len(sys.argv) > 2):
-    phiSize = int(sys.argv[2])
-  else:
-    phiSize = 193
-  if len(sys.argv) > 3:
-    bs = sys.argv[3] != 'noswap'
-  else:
-    bs = True
-  phiData = phi(sys.argv[1], gridSizes=(phiSize,), byteswap=bs)
-  print('title|%s|' % phiData.title)
-  print('botlabel|%s|' % phiData.botlabel)
-  print('size: ', phiData.phiArray.buffer_info())
-  print('first value:' , phiData.phiArray[0])
-  print('last value:' , phiData.phiArray[-1])
-  print('1000 value:' , phiData.phiArray[1000])
-  print('meanAbs', phiData.getMeanAbsoluteValues())
-  print('scale', phiData.scale)
-  print('oldMid', phiData.oldmid)
-  print('boundary', phiData.findBoundaries())
+  pass

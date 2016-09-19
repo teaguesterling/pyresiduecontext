@@ -1,30 +1,121 @@
 <div class="row">
-    <div class="col-sm-4 col-md-3">
+    <svg viewBox="-100 -100 200 200" height="0" width="0">
+        <defs>
+            <g ng-repeat-start="(rIndex, radialBin) in active.heatmap"></g>
+
+            <linearGradient
+                id="polar-bin-{{ pdbid }}-electrostatic-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                ng-if="rIndex > 0"
+                ng-repeat="template in polarBinsTemplate track by $index"
+
+                x1="5%" y1="5%"
+                x2="5%" y2="100%"
+                ng-init="polarIndex = $index">
+
+                <stop ng-offset="{{ $index * 10 + 3 }}%"
+                      style="stop-color:rgb({{ 25 * ($index + 1) }}, 0, {{ 255 - 25 * ($index + 1) }});stop-opacity:{{ (binHeight*5)|min:1 }}"
+                      ng-repeat="binHeight in esGridHistogramsBrief[rIndex * context.bin_data.num_bins_per_radial_unit + template.index - 72] track by $index"/>
+
+            </linearGradient>
+
+            <g ng-repeat-end></g>
+        </defs>
+    </svg>
+    <div class="col-sm-4 col-md-4">
         <div ng-show="active.item != null">
-            <div class="panel spherical-heatmap text-center"
-                 ng-repeat="(rIndex, radialBin) in active.heatmap" ng-if="rIndex > 0">
-                <svg viewBox="-100 -100 200 200" height="155px" ng-click="toggleFocus(null);">
-                    <circle r="5" fill="red" cx="0" cy="0"/>
-                    <path class="polar-bin"
-                          id="polar-bin-{{ pdbid }}-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
-                          ng-polar-bin="{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
-                          fill="transparent"
-                          stroke="#DDD"
-                          stroke-width="1"
-                          ng-d="{{ template.path }}"
-                          ng-class="{focus: focus === template.index}"
-                          ng-repeat="template in polarBinsTemplate">
+            <div class="active-hist-mode-selector" ng-init="sphericalHistMode = 'sterics'">
+                <div class="btn-group">
+                    <a class="btn btn-xs"
+                       ng-click="sphericalHistMode = 'sterics'"
+                       ng-class="{'btn-primary': sphericalHistMode == 'sterics',
+                                  'btn-default': sphericalHistMode != 'sterics'}">
+                        <abbr title="Sterics">S</abbr>
+                    </a>
+                    <a class="btn btn-xs"
+                       ng-click="sphericalHistMode = 'electrostatics'"
+                       ng-class="{'btn-primary': sphericalHistMode == 'electrostatics',
+                                  'btn-default': sphericalHistMode != 'electrostatics'}">
+                        <abbr title="Electrostatics">ES</abbr>
+                    </a>
+                    <a class="btn btn-xs"
+                       ng-click="sphericalHistMode = 'vanderwaals'"
+                       ng-class="{'btn-primary': sphericalHistMode == 'vanderwaals',
+                                  'btn-default': sphericalHistMode != 'vanderwaals'}">
+                        <abbr title="Van der Waals">VdW</abbr>
+                    </a>
+                    <a class="btn btn-xs"
+                       ng-click="sphericalHistMode = 'solventaccessibility'"
+                       ng-class="{'btn-primary': sphericalHistMode == 'solventaccessibility',
+                                  'btn-default': sphericalHistMode != 'solventaccessibility'}">
+                        <abbr title="Solvent Accessiblity">SA</abbr>
+                    </a>
+                </div>
+            </div>
+            <div>
+                <div ng-show="sphericalHistMode == 'sterics'">
+                    <div class="spherical-heatmap text-center"
+                         ng-repeat="(rIndex, radialBin) in active.heatmap" ng-if="rIndex > 0">
+                        <svg viewBox="-100 -100 200 200" height="175px" ng-click="toggleFocus(null);">
+                            <circle r="5" fill="red" cx="0" cy="0"/>
+                            <path class="polar-bin polar-bin-{{ pdbid }}-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin="{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin-value="{{ active.item.histogram[rIndex * context.bin_data.num_bins_per_radial_unit + template.index] }}"
+                                  fill="transparent"
+                                  stroke="#DDD"
+                                  stroke-width="1"
+                                  ng-d="{{ template.path }}"
+                                  ng-class="{focus: focus === template.index}"
+                                  ng-repeat="template in polarBinsTemplate">
+<title>Bin #: {{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}
+    Radius Bin:  {{ context.bin_data.radial_bin_boundaries[rIndex] | round:2 }}
+    Zenith Bin:  {{ (context.bin_data.zenith_boundaries[template.zenithIndex-1] || 0) | round:2  }}
+    Azimuth Bin: {{ context.bin_data.azimuth_boundaries[template.azimuthIndex] | round:2 }}
+    Bin Count: {{ active.item.histogram[rIndex * context.bin_data.num_bins_per_radial_unit + template.index] }}
+</title>
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+                <div ng-show="sphericalHistMode == 'electrostatics'">
+                    <div class="spherical-heatmap text-center"
+                         ng-repeat="(rIndex, radialBin) in active.heatmap" ng-if="rIndex > 0">
+                        <svg viewBox="-100 -100 200 200" height="175px" ng-click="toggleFocus(null);">
+                            <defs>
+                                <!-- TODO setXYZ -->
+                                <!--
+                                <linearGradient
+                                        id="polar-bin-{{ pdbid }}-electrostatic-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                        ng-repeat="template in polarBinsTemplate track by $index"
+                                        ng-init="polarIndex = $index">
+                                    <stop ng-offset="{{ $index * 5 }}%"
+                                          ng-color="rgb({{ 5 * $index }}, 0, {{ 255 - 5 * $index }})"
+                                          ng-stop-opacity="{{ 1 - binHeight }}"
+                                          ng-repeat="binHeight in esGridHistogramsBrief[rIndex * context.bin_data.num_bins_per_radial_unit + template.index - 72] track by $index"></stop>
+                                </linearGradient>
+                                -->
+                            </defs>
+                            <circle r="5" fill="red" cx="0" cy="0"/>
+                            <path class="polar-bin polar-bin-{{ pdbid }}-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin="{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin-value="#polar-bin-{{ pdbid }}-electrostatic-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  stroke="#DDD"
+                                  stroke-width="1"
+                                  ng-d="{{ template.path }}"
+                                  ng-class="{focus: focus === template.index}"
+                                  ng-repeat="template in polarBinsTemplate">
 <title>Bin #: {{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}
     Radius Bin:  {{ context.bin_data.radial_bin_boundaries[rIndex] | round:2 }}
     Zenith Bin:  {{ (context.bin_data.zenith_boundaries[template.zenithIndex-1] || 0) | round:2  }}
     Azimuth Bin: {{ context.bin_data.azimuth_boundaries[template.azimuthIndex] | round:2 }}
 </title>
-                    </path>
-                </svg>
+                            </path>
+                        </svg>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    <div class="col-xs-12 col-sm-8 col-md-9">
+    <div class="col-xs-12 col-sm-8 col-md-8">
         <div class="row">
             <div class="col-xs-12">
                 <div ng-js-mol id="viewer" structure="{{ pdbid }}" chain="{{ chain }}" identifier="{{ identifier }}"></div>
@@ -52,19 +143,22 @@
     </div>
 </div>
 <div class="row">
-    <div class="col-sm-6 col-md-6" ng-show="active.item != null">
-        <div class="panel panel-default text-center" ng-if="focus">
+    <div class="col-sm-4 col-md-4" ng-show="active.item != null">
+        <div class="text-center" ng-if="focus">
             <svg viewBox="0 0 140 100" height="150px">
                 <rect class="histogram-bin"
                       ng-histogram-bin="{{ $index }}"
                       fill="rgb({{ 5 * $index }}, 0, {{ 255 - 5 * $index }})"
-                      ng-x="{{ 10 * ($index) * (15 / 50) }}"
+                      ng-x="{{ 9 * ($index) * (15 / 50) + 5 }}"
                       ng-width="{{ 10 * ((7 - -7 + 1) / 50) }}"
                       ng-y="{{ binHeight < .18 ? 90 -  500 * binHeight : 10 }}"
                       ng-height="{{ binHeight < .18 ? 500 * binHeight : 80 }}"
                       ng-if="binHeight > 0"
-                      ng-repeat="binHeight in gridHistograms[focus-72] track by $index">
-                    <title>{{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}</title>
+                      ng-repeat="binHeight in esGridHistograms[focus-72] track by $index">
+                    <title>
+                        {{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}
+                        Bin: {{ $index }}
+                    </title>
                 </rect>
                 <line x1="70"
                       x2="70"
@@ -96,23 +190,32 @@
                 <text x="60" y="15" font-family="Verdana" font-size="8">&ge;20%</text>
                 <text x="125" y="100" font-family="Verdana" font-size="8">&ge;7</text>
                 <text x="60" y="110" font-family="Verdana" font-size="8">kT</text>
+            </svg>
+            <p>
+                Electrostatics
+            </p>
+            <svg viewBox="0 0 140 100" height="0">
+                <rect x="0" y="0" width="140" height="100" fill="url(http://127.0.0.1:5000#polar-bin-{{ pdbid }}-electrostatic-gradient-{{ focus }}"/>
             </svg>
         </div>
     </div>
 
-    <div class="col-sm-6 col-md-6" ng-show="active.item != null">
-        <div class="panel panel-default text-center" ng-if="focus">
+    <div class="col-sm-4 col-md-4" ng-show="active.item != null">
+        <div class="text-center" ng-if="focus">
             <svg viewBox="0 0 140 100" height="150px">
                 <rect class="histogram-bin"
                       ng-histogram-bin="{{ $index }}"
-                      fill="rgb({{ 5 * $index }}, 0, {{ 255 - 5 * $index }})"
-                      ng-x="{{ 10 * ($index) * (15 / 50) }}"
+                      fill="rgb({{ 255 - 5 * $index }}, {{ 5 * $index }}, 0)"
+                      ng-x="{{ 9 * ($index) * (15 / 50) + 2 }}"
                       ng-width="{{ 10 * ((7 - -7 + 1) / 50) }}"
                       ng-y="{{ binHeight < .18 ? 90 -  500 * binHeight : 10 }}"
                       ng-height="{{ binHeight < .18 ? 500 * binHeight : 80 }}"
                       ng-if="binHeight > 0"
-                      ng-repeat="binHeight in gridHistograms[focus-72] track by $index">
-                    <title>{{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}</title>
+                      ng-repeat="binHeight in esGridHistograms[focus-72] track by $index">
+                    <title>
+                        {{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}
+                        Bin: {{ $index }}
+                    </title>
                 </rect>
                 <line x1="70"
                       x2="70"
@@ -145,6 +248,63 @@
                 <text x="125" y="100" font-family="Verdana" font-size="8">&ge;7</text>
                 <text x="60" y="110" font-family="Verdana" font-size="8">kT</text>
             </svg>
+            <p>
+                Van der Waals
+            </p>
+        </div>
+    </div>
+
+    <div class="col-sm-4 col-md-4" ng-show="active.item != null">
+        <div class="text-center" ng-if="focus">
+            <svg viewBox="0 0 140 100" height="150px">
+                <rect class="histogram-bin"
+                      ng-histogram-bin="{{ $index }}"
+                      fill="rgb(128, 128, 128)"
+                      ng-x="{{ 9 * ($index) * (15 / 50) + 5 }}"
+                      ng-width="{{ 10 * ((7 - -7 + 1) / 50) }}"
+                      ng-y="{{ binHeight < .18 ? 90 -  500 * binHeight : 10 }}"
+                      ng-height="{{ binHeight < .18 ? 500 * binHeight : 80 }}"
+                      ng-if="binHeight > 0"
+                      ng-repeat="binHeight in esGridHistograms[focus-72] track by $index">
+                    <title>
+                        {{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}
+                        Bin: {{ $index }}
+                    </title>
+                </rect>
+                <line x1="70"
+                      x2="70"
+                      y1="20"
+                      y2="90"
+                      style="stroke: #CCC; stroke-width: 1"
+                />
+                <line x1="0"
+                      x2="140"
+                      y1="90"
+                      y2="90"
+                      style="stroke: #CCC; stroke-width: 1"
+                />
+                <line x1="70"
+                      x2="70"
+                      y1="10"
+                      y2="20"
+                      style="stroke: #AAA; stroke-width: 1"
+                />
+                <line ng-x1="{{ x }}"
+                      ng-x2="{{ x }}"
+                      y1="95"
+                      y2="100"
+                      style="stroke: #AAA; stroke-width: 1"
+                      ng-repeat="x in [ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140 ]"
+                />
+                <text x="0" y="100" font-family="Verdana" font-size="8">&le;-7</text>
+                <text x="65" y="100" font-family="Verdana" font-size="8">0</text>
+                <text x="60" y="15" font-family="Verdana" font-size="8">&ge;20%</text>
+                <text x="125" y="100" font-family="Verdana" font-size="8">&ge;7</text>
+                <text x="60" y="110" font-family="Verdana" font-size="8">kT</text>
+            </svg>
+            <p>
+                Solvent Accessibility
+            </p>
         </div>
     </div>
 
