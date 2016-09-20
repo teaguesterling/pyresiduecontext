@@ -26,6 +26,7 @@ from residuecontext.builder import (
     ResidueContextParams,
     ContextBuilder,
     create_grid_histogram,
+    create_paired_grid_histogram,
 )
 from residuecontext.helpers import (
     get_pdb_selection,
@@ -41,6 +42,8 @@ from residuecontext.tasks import (
     run_alignment_comparisons,
 )
 from residuecontext.electrostatics import get_electrostatics_grid
+from residuecontext.vanderwaals import get_vanderderwaals_grids
+from residuecontext.accessibility import get_solvation_grid
 
 
 app = Flask(__name__)
@@ -136,7 +139,7 @@ def get_phi_context(ident, alignment_id=None, kind=None):
         abort(404)
 
     start = time.time()
-    app.logger.info("Starting grid context generation of {}".format(ident))
+    app.logger.info("Starting electrostatic grid context generation of {}".format(ident))
     grid_histograms = create_grid_histogram(phi, coords, extents=(-7, 7))
     generate_time = time.time() - start
     app.logger.info("Histogramming took {:.4f}sec".format(generate_time))
@@ -189,11 +192,78 @@ def get_vdw_context(ident, alignment_id=None, kind=None):
     if phi is None:
         abort(404)
 
+    vdw_attractive, vdw_repulsive = get_vanderderwaals_grids(pdbid,
+                                                             chain=chain,
+                                                             alignment_id=root,
+                                                             box=phi,
+                                                             scale=1/phi.scale)
+
     start = time.time()
     app.logger.info("Starting grid context generation of {}".format(ident))
-    grid_histograms = create_grid_histogram(phi, coords, extents=(-7, 7))
+    grid_histograms = create_paired_grid_histogram(vdw_attractive,
+                                                   vdw_repulsive,
+                                                   coords,
+                                                   extents=[(0, 7), (7, 0)])
     generate_time = time.time() - start
     app.logger.info("Histogramming took {:.4f}sec".format(generate_time))
+
+    app.logger.info("Starting production of JSON results for {}".format(ident))
+    start = time.time()
+    result = {
+        'histograms': grid_histograms.tolist()
+    }
+    render_time = time.time() - start
+    app.logger.info("Production took {:.4f}sec".format(generate_time))
+
+    result['timing'] = {
+        'download': round(download_time, 4),
+        'generate': round(generate_time, 4),
+        'render': round(render_time, 4),
+    }
+
+    @after_this_request
+    def report_timing():
+        transmit_time = time.time() - start
+        app.logger.info("Transmission took {:.4f}sec".format(transmit_time))
+
+    app.logger.info("Starting transmission results for {}".format(ident))
+    start = time.time()
+    return jsonify(result)
+
+
+@app.route('/contexts/sa/<ident>.json', defaults={'alignment_id': None, 'kind': None})
+@app.route('/alignments/<alignment_id>/contexts/sa/<ident>.json', defaults={'kind': None})
+@app.route('/alignments/<alignment_id>-<kind>/contexts/sa/<ident>.json')
+def get_sa_context(ident, alignment_id=None, kind=None):
+    if kind is not None:
+        root = werkzeug.security.safe_join(alignment_id, kind)
+    elif alignment_id is not None:
+        root = alignment_id
+    else:
+        root = None
+
+    pdbid, chain = extract_ident(ident)
+    if chain == '_':
+        chain = None
+    coords = map(float, request.args['coords'].split())
+    app.logger.info("Starting generation of {}".format(pdbid))
+    start = time.time()
+    phi = get_electrostatics_grid(pdbid, chain=chain, alignment_id=root)
+    download_time = time.time() - start
+    app.logger.info("Generation took {:.4f}sec".format(download_time))
+
+    if phi is None:
+        abort(404)
+
+    solvent_accessibility = get_solvation_grid(pdbid,
+                                               chain=chain,
+                                               alignment_id=root,
+                                               box=phi)
+
+    start = time.time()
+    app.logger.info("Starting grid context generation of {}".format(ident))
+    grid_histograms = create_grid_histogram(solvent_accessibility, coords, extents=(0, 1))
+    generate_time = time.time() - start
 
     app.logger.info("Starting production of JSON results for {}".format(ident))
     start = time.time()

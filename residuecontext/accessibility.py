@@ -13,59 +13,39 @@ import sh
 from residuecontext import phigrid
 from residuecontext.pdbfiles import split_ext_gz
 from residuecontext.prepare_structure import get_charged_pdb
-from residuecontext.vdwgrid import load_vdw_grids
+from residuecontext.accessibilitygrid import load_solv_grid
 
-CHEMGRID_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'chemgrid')
+SOLVMAP_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'solvmap')
 
 # QNIFFT has an issue with (longer) absolute paths, it seems
-CHEMGRID_PARAM_FILE = "INCHEM"
-CHEMGRID_INPUT_FILE = 'input.pdb'
-CHEMGRID_CHARGE_FILE = 'prot.table.ambcrg.ambH'
-CHEMGRID_VDW_FILE = 'vdw.parms.amb.mindock'
+SOLVMAP_PARAM_FILE = "INSEV"
+SOLVMAP_INPUT_FILE = 'input.pdb'
 
-CHEMGRID_CHARGE_PATH = os.path.join(CHEMGRID_DIR, CHEMGRID_CHARGE_FILE)
-CHEMGRID_VDW_PATH = os.path.join(CHEMGRID_DIR, CHEMGRID_VDW_FILE)
-CHEMGRID_BOX_FILE = 'box'
-CHEMGRID_SPACING = 0.2
-CHEMGRID_ES_TYPE = 1  # Not important
-CHEMGRID_ES_SCALE = 4  # Not important
-CHEMGRID_BUMP_POLAR = 2.3
-CHEMGRID_BUMP_NONPOLAR = 2.6
-CHEMGRID_OUTPUT_PREFIX = 'output'
-CHEMGRID_OUTPUT_BMP = CHEMGRID_OUTPUT_PREFIX + '.bmp'
-CHEMGRID_OUTPUT_VDW = CHEMGRID_OUTPUT_PREFIX + '.vdw'
-CHEMGRID_OUTPUT_OUTCHEM = 'OUTCHEM'
+SOLVMAP_BOX_FILE = 'box'
+SOLVMAP_SPACING = 1
+SOLVMAP_ATOM_RADII = "1.60,1.65,1.90,1.90,1.90,1.60"
+SOLVMAP_PROBE_RADIUS = 1.4
+SOLVMAP_ASSUMED_LIGAND_RADIUS = 2.6
 
-CHEMGRID_DEFAULT_DYNAMIC_PARAMS = {
-    'grid_spacing': CHEMGRID_SPACING,
-}
-CHEMGRID_PARAM_PATHS = (
-    CHEMGRID_CHARGE_PATH,
-    CHEMGRID_VDW_PATH,
-)
-CHEMGRID_PARAMS = """
+SOLVMAP_OUTSEV = 'OUTSEV'
+SOLVMAP_OUTPUT = 'output.solv-heavy'
+
+SOLVMAP_PARAMS = """
 {pdb}
-{charge}
-{vdw}
+{output}
+{radii}
+{probe}
+{spacing}
 {box}
-{{grid_spacing}}
-{es_type}
-{es_scale}
-{unknonw_1}
-{bump_distance_polar} {bump_distance_nonpolar}
-{output_prefix}
+{ligand}
 """.format(
-    pdb=os.path.join('.', CHEMGRID_INPUT_FILE),
-    charge=os.path.join('.', os.path.basename(CHEMGRID_CHARGE_FILE)),
-    vdw=os.path.join('.', os.path.basename(CHEMGRID_VDW_FILE)),
-    box=CHEMGRID_BOX_FILE,
-    grid_spacing=CHEMGRID_SPACING,
-    es_type=CHEMGRID_ES_TYPE,
-    es_scale=CHEMGRID_ES_SCALE,
-    unknonw_1=10,
-    bump_distance_polar=CHEMGRID_BUMP_POLAR,
-    bump_distance_nonpolar=CHEMGRID_BUMP_NONPOLAR,
-    output_prefix=CHEMGRID_OUTPUT_PREFIX
+    pdb=os.path.join('.', SOLVMAP_INPUT_FILE),
+    output=os.path.join('.', SOLVMAP_OUTPUT),
+    radii=SOLVMAP_ATOM_RADII,
+    probe=SOLVMAP_PROBE_RADIUS,
+    spacing=SOLVMAP_SPACING,
+    ligand=SOLVMAP_ASSUMED_LIGAND_RADIUS,
+    box=SOLVMAP_BOX_FILE
 ).strip()
 
 
@@ -79,8 +59,8 @@ ATOM      3  DUC BOX     1    {x1:8.3f}{y0:8.3f}{z1:8.3f}
 ATOM      4  DUD BOX     1    {x0:8.3f}{y0:8.3f}{z1:8.3f}
 ATOM      5  DUE BOX     1    {x0:8.3f}{y1:8.3f}{z0:8.3f}
 ATOM      6  DUF BOX     1    {x1:8.3f}{y1:8.3f}{z0:8.3f}
-ATOM      7  DUG BOX     1    {x0:8.3f}{y1:8.3f}{z1:8.3f}
-ATOM      8  DUH BOX     1    {x1:8.3f}{y1:8.3f}{z1:8.3f}
+ATOM      7  DUG BOX     1    {x1:8.3f}{y1:8.3f}{z1:8.3f}
+ATOM      8  DUH BOX     1    {x0:8.3f}{y1:8.3f}{z1:8.3f}
 CONECT    1    2    4    5
 CONECT    2    1    3    6
 CONECT    3    2    4    7
@@ -92,48 +72,38 @@ CONECT    8    4    5    7
 """.strip() + '\n'
 
 
-chemgrid_cmd = sh.Command(os.path.join(CHEMGRID_DIR, 'chemgrid'))
+solvmap_cmd = sh.Command(os.path.join(SOLVMAP_DIR, 'solvmap'))
 
 
-def run_chemgrid(pdb, box, vdw=None, outchem=None, bmp=None, log=None, params=CHEMGRID_DEFAULT_DYNAMIC_PARAMS):
+def run_solvmap(pdb, box, outsev=None, solv=None, log=None):
     try:
         exec_dir = tempfile.mkdtemp()
-        param_file = os.path.join(exec_dir, CHEMGRID_PARAM_FILE)
-        cmd = chemgrid_cmd.bake(param_file)
+        param_file = os.path.join(exec_dir, SOLVMAP_PARAM_FILE)
+        cmd = solvmap_cmd.bake(param_file)
 
         with open(param_file, 'w') as f:
-            f.write(CHEMGRID_PARAMS.format(**params))
+            f.write(SOLVMAP_PARAMS)
 
-        for param_path in CHEMGRID_PARAM_PATHS:
-            os.symlink(
-                param_path,
-                os.path.join(exec_dir, os.path.basename(param_path))
-            )
         os.symlink(
             pdb,
-            os.path.join(exec_dir, CHEMGRID_INPUT_FILE)
+            os.path.join(exec_dir, SOLVMAP_INPUT_FILE)
         )
         os.symlink(
             box,
-            os.path.join(exec_dir, CHEMGRID_BOX_FILE)
+            os.path.join(exec_dir, SOLVMAP_BOX_FILE)
         )
-        logging.info("Running chemgrid {0!s} in {1}".format(cmd, exec_dir))
+        logging.info("Running sovlmap {0!s} in {1}".format(cmd, exec_dir))
         cmd(_err_to_out=True, _cwd=exec_dir, _out=log)
 
-        if outchem is not None:
+        if outsev is not None:
             shutil.move(
-                os.path.join(exec_dir, CHEMGRID_OUTPUT_OUTCHEM),
-                outchem
+                os.path.join(exec_dir, SOLVMAP_OUTSEV),
+                outsev
             )
-        if bmp is not None:
+        if solv is not None:
             shutil.move(
-                os.path.join(exec_dir, CHEMGRID_OUTPUT_BMP),
-                bmp
-            )
-        if vdw is not None:
-            shutil.move(
-                os.path.join(exec_dir, CHEMGRID_OUTPUT_VDW),
-                vdw
+                os.path.join(exec_dir, SOLVMAP_OUTPUT),
+                solv
             )
     except Exception:
         raise
@@ -141,13 +111,9 @@ def run_chemgrid(pdb, box, vdw=None, outchem=None, bmp=None, log=None, params=CH
         shutil.rmtree(exec_dir)
 
 
-def convert_vdwgrid_to_phi(vdw_grid, box, vdw_vdw_phi):
-    pass
-
-
-def get_vanderderwaals_grids(code, chain=None, model=0, alignment_id=None,
-                             force=False, log=None,
-                             box=None, scale=None):
+def get_solvation_grid(code, chain=None, model=0, alignment_id=None,
+                       force=False, log=None,
+                       box=None):
     protonated = get_charged_pdb(code,
                                  chain=chain,
                                  model=model,
@@ -155,30 +121,24 @@ def get_vanderderwaals_grids(code, chain=None, model=0, alignment_id=None,
                                  force=force)
     base, ext = split_ext_gz(protonated)
     box_file = base + '.box'
-    vdw = base + '.vdw'
-    bmp = base + '.bmp'
-    outchem = os.path.join(os.path.dirname(base), 'OUTCHEM')
+    solv = base + '.solv-heavy'
+    outsev = os.path.join(os.path.dirname(base), SOLVMAP_OUTSEV)
 
     if not os.path.exists(box_file) or box is not None:
         with open(box_file, 'w') as f:
-            write_vanderwaals_box(f, box)
+            write_solventaccessibility_box(f, box)
 
-    if force or not os.path.exists(vdw):
-        params = {}
-        if scale is not None:
-            params['grid_spacing'] = scale
-        run_chemgrid(protonated, box_file,
-                     vdw=vdw,
-                     outchem=outchem,
-                     bmp=bmp,
-                     log=log,
-                     params=params)
+    if force or not os.path.exists(solv):
+        run_solvmap(protonated, box_file,
+                    outsev=outsev,
+                    solv=solv,
+                    log=log)
 
-    vdw_grids = load_vdw_grids(outchem, vdw)
-    return vdw_grids
+    solv_grid = load_solv_grid(solv)
+    return solv_grid
 
 
-def write_vanderwaals_box(io, box):
+def write_solventaccessibility_box(io, box):
     if isinstance(box, phigrid.phi):
         extents = box.getMinsMaxs()
         center = box.oldmid

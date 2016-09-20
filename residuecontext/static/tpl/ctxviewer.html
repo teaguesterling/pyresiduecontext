@@ -18,6 +18,36 @@
 
             </linearGradient>
 
+            <linearGradient
+                id="polar-bin-{{ pdbid }}-vanderwaals-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                ng-if="rIndex > 0"
+                ng-repeat="template in polarBinsTemplate track by $index"
+
+                x1="5%" y1="5%"
+                x2="5%" y2="100%"
+                ng-init="polarIndex = $index">
+
+                <stop ng-offset="{{ $index * 10 + 3 }}%"
+                      style="stop-color:rgb({{ $index < 5 ? '128, 0, 0' : '0, 128, 0' }});stop-opacity:{{ (binHeight*5)|min:1 }}"
+                      ng-repeat="binHeight in vdwGridHistogramsBrief[rIndex * context.bin_data.num_bins_per_radial_unit + template.index - 72] track by $index"/>
+
+            </linearGradient>
+
+            <linearGradient
+                id="polar-bin-{{ pdbid }}-solventaccessibility-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                ng-if="rIndex > 0"
+                ng-repeat="template in polarBinsTemplate track by $index"
+
+                x1="5%" y1="5%"
+                x2="5%" y2="100%"
+                ng-init="polarIndex = $index">
+
+                <stop ng-offset="{{ $index * 10 + 3 }}%"
+                      style="stop-color:rgb(128, 128, 128);stop-opacity:{{ (binHeight*5)|min:1 }}"
+                      ng-repeat="binHeight in saGridHistogramsBrief[rIndex * context.bin_data.num_bins_per_radial_unit + template.index - 72] track by $index"/>
+
+            </linearGradient>
+
             <g ng-repeat-end></g>
         </defs>
     </svg>
@@ -98,6 +128,78 @@
                             <path class="polar-bin polar-bin-{{ pdbid }}-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
                                   ng-polar-bin="{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
                                   ng-polar-bin-value="#polar-bin-{{ pdbid }}-electrostatic-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  stroke="#DDD"
+                                  stroke-width="1"
+                                  ng-d="{{ template.path }}"
+                                  ng-class="{focus: focus === template.index}"
+                                  ng-repeat="template in polarBinsTemplate">
+<title>Bin #: {{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}
+    Radius Bin:  {{ context.bin_data.radial_bin_boundaries[rIndex] | round:2 }}
+    Zenith Bin:  {{ (context.bin_data.zenith_boundaries[template.zenithIndex-1] || 0) | round:2  }}
+    Azimuth Bin: {{ context.bin_data.azimuth_boundaries[template.azimuthIndex] | round:2 }}
+</title>
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+                <div ng-show="sphericalHistMode == 'vanderwaals'">
+                    <div class="spherical-heatmap text-center"
+                         ng-repeat="(rIndex, radialBin) in active.heatmap" ng-if="rIndex > 0">
+                        <svg viewBox="-100 -100 200 200" height="175px" ng-click="toggleFocus(null);">
+                            <defs>
+                                <!-- TODO setXYZ -->
+                                <!--
+                                <linearGradient
+                                        id="polar-bin-{{ pdbid }}-electrostatic-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                        ng-repeat="template in polarBinsTemplate track by $index"
+                                        ng-init="polarIndex = $index">
+                                    <stop ng-offset="{{ $index * 5 }}%"
+                                          ng-color="rgb({{ 5 * $index }}, 0, {{ 255 - 5 * $index }})"
+                                          ng-stop-opacity="{{ 1 - binHeight }}"
+                                          ng-repeat="binHeight in esGridHistogramsBrief[rIndex * context.bin_data.num_bins_per_radial_unit + template.index - 72] track by $index"></stop>
+                                </linearGradient>
+                                -->
+                            </defs>
+                            <circle r="5" fill="red" cx="0" cy="0"/>
+                            <path class="polar-bin polar-bin-{{ pdbid }}-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin="{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin-value="#polar-bin-{{ pdbid }}-vanderwaals-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  stroke="#DDD"
+                                  stroke-width="1"
+                                  ng-d="{{ template.path }}"
+                                  ng-class="{focus: focus === template.index}"
+                                  ng-repeat="template in polarBinsTemplate">
+<title>Bin #: {{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}
+    Radius Bin:  {{ context.bin_data.radial_bin_boundaries[rIndex] | round:2 }}
+    Zenith Bin:  {{ (context.bin_data.zenith_boundaries[template.zenithIndex-1] || 0) | round:2  }}
+    Azimuth Bin: {{ context.bin_data.azimuth_boundaries[template.azimuthIndex] | round:2 }}
+</title>
+                            </path>
+                        </svg>
+                    </div>
+                </div>
+                <div ng-show="sphericalHistMode == 'solventaccessibility'">
+                    <div class="spherical-heatmap text-center"
+                         ng-repeat="(rIndex, radialBin) in active.heatmap" ng-if="rIndex > 0">
+                        <svg viewBox="-100 -100 200 200" height="175px" ng-click="toggleFocus(null);">
+                            <defs>
+                                <!-- TODO setXYZ -->
+                                <!--
+                                <linearGradient
+                                        id="polar-bin-{{ pdbid }}-electrostatic-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                        ng-repeat="template in polarBinsTemplate track by $index"
+                                        ng-init="polarIndex = $index">
+                                    <stop ng-offset="{{ $index * 5 }}%"
+                                          ng-color="rgb({{ 5 * $index }}, 0, {{ 255 - 5 * $index }})"
+                                          ng-stop-opacity="{{ 1 - binHeight }}"
+                                          ng-repeat="binHeight in esGridHistogramsBrief[rIndex * context.bin_data.num_bins_per_radial_unit + template.index - 72] track by $index"></stop>
+                                </linearGradient>
+                                -->
+                            </defs>
+                            <circle r="5" fill="red" cx="0" cy="0"/>
+                            <path class="polar-bin polar-bin-{{ pdbid }}-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin="{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
+                                  ng-polar-bin-value="#polar-bin-{{ pdbid }}-solventaccessibility-gradient-{{ rIndex * context.bin_data.num_bins_per_radial_unit + template.index }}"
                                   stroke="#DDD"
                                   stroke-width="1"
                                   ng-d="{{ template.path }}"
@@ -205,13 +307,13 @@
             <svg viewBox="0 0 140 100" height="150px">
                 <rect class="histogram-bin"
                       ng-histogram-bin="{{ $index }}"
-                      fill="rgb({{ 255 - 5 * $index }}, {{ 5 * $index }}, 0)"
+                      fill="{{ $index < 25 ? 'rgb(128, 0, 0)' : 'rgb(0, 128, 0)' }}"
                       ng-x="{{ 9 * ($index) * (15 / 50) + 2 }}"
                       ng-width="{{ 10 * ((7 - -7 + 1) / 50) }}"
                       ng-y="{{ binHeight < .18 ? 90 -  500 * binHeight : 10 }}"
                       ng-height="{{ binHeight < .18 ? 500 * binHeight : 80 }}"
                       ng-if="binHeight > 0"
-                      ng-repeat="binHeight in esGridHistograms[focus-72] track by $index">
+                      ng-repeat="binHeight in vdwGridHistograms[focus-72] track by $index">
                     <title>
                         {{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}
                         Bin: {{ $index }}
@@ -242,8 +344,8 @@
                       style="stroke: #AAA; stroke-width: 1"
                       ng-repeat="x in [ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140 ]"
                 />
-                <text x="0" y="100" font-family="Verdana" font-size="8">&le;-7</text>
-                <text x="65" y="100" font-family="Verdana" font-size="8">0</text>
+                <text x="0" y="100" font-family="Verdana" font-size="8">&ge;7</text>
+                <text x="25" y="100" font-family="Verdana" font-size="8">Repulsive 0 Attractive</text>
                 <text x="60" y="15" font-family="Verdana" font-size="8">&ge;20%</text>
                 <text x="125" y="100" font-family="Verdana" font-size="8">&ge;7</text>
                 <text x="60" y="110" font-family="Verdana" font-size="8">kT</text>
@@ -265,9 +367,9 @@
                       ng-y="{{ binHeight < .18 ? 90 -  500 * binHeight : 10 }}"
                       ng-height="{{ binHeight < .18 ? 500 * binHeight : 80 }}"
                       ng-if="binHeight > 0"
-                      ng-repeat="binHeight in esGridHistograms[focus-72] track by $index">
+                      ng-repeat="binHeight in saGridHistograms[focus-72] track by $index">
                     <title>
-                        {{ binHeight * 100 | round:3 }}% of grid points kT={{ ($index - 24) / (25/7.0) | round:3 }}
+                        {{ binHeight * 100 | round:3 }}% of grid points {{ ($index - 24) / (25/7.0) | round:3 }}
                         Bin: {{ $index }}
                     </title>
                 </rect>
@@ -296,11 +398,9 @@
                       style="stroke: #AAA; stroke-width: 1"
                       ng-repeat="x in [ 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140 ]"
                 />
-                <text x="0" y="100" font-family="Verdana" font-size="8">&le;-7</text>
-                <text x="65" y="100" font-family="Verdana" font-size="8">0</text>
+                <text x="0" y="100" font-family="Verdana" font-size="8">0</text>
                 <text x="60" y="15" font-family="Verdana" font-size="8">&ge;20%</text>
-                <text x="125" y="100" font-family="Verdana" font-size="8">&ge;7</text>
-                <text x="60" y="110" font-family="Verdana" font-size="8">kT</text>
+                <text x="125" y="100" font-family="Verdana" font-size="8">1</text>
             </svg>
             <p>
                 Solvent Accessibility

@@ -51,8 +51,8 @@ angular.module('ResCtxVis.services', [
     }])
 
     .factory('GridPointContextFactory', ['ContextResourceFactory', function (ContextResourceFactory) {
-        return function(alignmentRunId) {
-            return ContextResourceFactory('phi', alignmentRunId === undefined ? null : alignmentRunId);
+        return function(kind, alignmentRunId) {
+            return ContextResourceFactory(kind, alignmentRunId === undefined ? null : alignmentRunId);
         };
     }])
 
@@ -206,7 +206,7 @@ angular.module('ResCtxVis.services', [
                 jsmol = jsmol || $scope.jsmol;
 
                 if(jsmol) {
-                    $scope.setAlignmentColors(jsmol, results[$scope.alignmentRunId]);
+                    $scope.setAlignmentColors(jsmol, results);
                 }
             });
         };

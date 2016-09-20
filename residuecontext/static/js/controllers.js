@@ -113,7 +113,9 @@ angular.module('ResCtxVis.controllers', [
         }
 
         var ChainContext = ChainContextFactory($scope.alignmentRunId),
-            GridPointContext = GridPointContextFactory($scope.alignmentRunId);
+            EsGridPointContext = GridPointContextFactory('phi', $scope.alignmentRunId),
+            VdwGridPointContext = GridPointContextFactory('vdw', $scope.alignmentRunId),
+            SaGridPointContext = GridPointContextFactory('sa', $scope.alignmentRunId);
 
         $scope.jsmol = null;
         $scope.active = {
@@ -172,7 +174,7 @@ angular.module('ResCtxVis.controllers', [
             };
 
             $scope.esGridHistograms = null;
-            GridPointContext.get(
+            EsGridPointContext.get(
                 {
                     identifier: $scope.identifier,
                     coords: $scope.active.item.coords.join(' ')
@@ -189,6 +191,45 @@ angular.module('ResCtxVis.controllers', [
                     }
                 }
             );
+
+            $scope.vdwGridHistograms = null;
+            VdwGridPointContext.get(
+                {
+                    identifier: $scope.identifier,
+                    coords: $scope.active.item.coords.join(' ')
+                }, function (data) {
+                    $scope.vdwGridHistograms = data.histograms;
+                    $scope.vdwGridHistogramsBrief = [];
+                    for(var idx = 0; idx < $scope.vdwGridHistograms.length; idx++) {
+                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
+                            rebinSize = $scope.vdwGridHistograms[idx].length / brief.length;
+                        for(var jdx = 0; jdx < $scope.vdwGridHistograms[idx].length; jdx++) {
+                            brief[Math.floor(jdx / rebinSize)] += $scope.vdwGridHistograms[idx][jdx];
+                        }
+                        $scope.vdwGridHistogramsBrief.push(brief);
+                    }
+                }
+            );
+
+            $scope.saGridHistograms = null;
+            SaGridPointContext.get(
+                {
+                    identifier: $scope.identifier,
+                    coords: $scope.active.item.coords.join(' ')
+                }, function (data) {
+                    $scope.saGridHistograms = data.histograms;
+                    $scope.saGridHistogramsBrief = [];
+                    for(var idx = 0; idx < $scope.saGridHistograms.length; idx++) {
+                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
+                            rebinSize = $scope.saGridHistograms[idx].length / brief.length;
+                        for(var jdx = 0; jdx < $scope.saGridHistograms[idx].length; jdx++) {
+                            brief[Math.floor(jdx / rebinSize)] += $scope.saGridHistograms[idx][jdx];
+                        }
+                        $scope.saGridHistogramsBrief.push(brief);
+                    }
+                }
+            );
+
             $scope.resetHighlights();
             $scope.sphericalBinData = JsMolSphericalHistogram($scope.jsmol, $scope.context, index);
             $scope.sphericalBinData.center();

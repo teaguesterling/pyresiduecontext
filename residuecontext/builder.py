@@ -37,9 +37,29 @@ def ball_mask(shape):
     return masked
 
 
+def array_from_grid(grid):
+    if hasattr(grid, 'phiArray'):
+        return array_from_phi(grid)
+    elif hasattr(grid, 'vdwArray'):
+        return array_from_vdw(grid)
+    elif hasattr(grid, 'saArray'):
+        return array_from_sa(grid)
+
+
 def array_from_phi(phi):
     array = np.array(phi.phiArray).reshape(phi.gridDimension, phi.gridDimension, phi.gridDimension)
     return array
+
+
+def array_from_vdw(vdw):
+    array = np.array(vdw.vdwArray).reshape(vdw.gridDimension, vdw.gridDimension, vdw.gridDimension)
+    return array
+
+
+def array_from_sa(sa):
+    array = np.array(sa.saArray).reshape(sa.gridDimension, sa.gridDimension, sa.gridDimension)
+    return array
+
 
 
 def get_grid_sphere_at_point(phi, center, boxStep=None, boxSize=np.e ** 2):
@@ -55,7 +75,7 @@ def get_grid_sphere_at_point(phi, center, boxStep=None, boxSize=np.e ** 2):
     boxStep = boxStep or step
     #GP1 = [np.linspace(X0, X1, gridDim) for X0, X1 in gridExtents.transpose()]
 
-    array = array_from_phi(phi)
+    array = array_from_grid(phi)
     grid_coords = [np.arange(C - boxSize, C + boxSize, boxStep) for C in center]
 
     XYZ = np.transpose(grid_coords)
@@ -152,15 +172,16 @@ def create_paired_grid_histogram(vdwA, vdwB, center, bins=50, extents=None, para
     if extents is None:
         extentsA = valuesA.min(), valuesA.max()
         extentsB = valuesB.min(), valuesB.max()
+    elif isinstance(extents, list):
+        extentsA, extentsB = extents
     else:
         extentsA = extents
         extentsB = extents
 
     num_spherical_bins = histogramA.shape[-1]
-    bin_a_offset = bins//2  # B is negative A is positive
-    half_bins = bin_a_offset - 1  # Leave a shared 0
+    half_bins = bins//2  # B is negative A is positive
 
-    inner_bin_boundaries = np.linspace(extentsA[0], extentsA[1], half_bins)
+    inner_bin_boundaries = np.linspace(extentsA[0], extentsA[1], half_bins+1)
     bin_histograms = np.empty((num_spherical_bins, bins))
 
     clippedA = np.clip(valuesA, extentsA[0], extentsA[1])
@@ -183,11 +204,18 @@ def create_paired_grid_histogram(vdwA, vdwB, center, bins=50, extents=None, para
         in_sphereB = selectionB
         num_in_sphereB = len(in_sphereB)
 
-        if num_in_sphereA == 0:
+        if num_in_sphereA == 0 and num_in_sphereB == 0:
             bin_histograms[bin_index] = 0
         else:
-            bin_histogram, _boundaries = np.histogram(in_sphere, bins=inner_bin_boundaries)
-            bin_histograms[bin_index] = bin_histogram / num_in_sphere
+            bin_histogramA, _boundaries = np.histogram(in_sphereA, bins=inner_bin_boundaries)
+            bin_histogramB, _boundaries = np.histogram(in_sphereB, bins=inner_bin_boundaries)
+            bin_histogramB_rev = bin_histogramB[::-1]  # All but "0" bin but backwards
+
+            bin_histogram = np.zeros(bins)
+            bin_histogram[half_bins:] = bin_histogramA / num_in_sphereA
+            bin_histogram[:half_bins] = bin_histogramB_rev / num_in_sphereB
+
+            bin_histograms[bin_index] = bin_histogram
 
     return bin_histograms
 

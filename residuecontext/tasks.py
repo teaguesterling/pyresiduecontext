@@ -30,7 +30,7 @@ from residuecontext.biojava_alignment import (
 from residuecontext.rcontext_alignment import run_residuecontext_alignment
 from residuecontext.dalilite_alignment import run_dalilite_alignment
 from residuecontext.electrostatics import get_electrostatics_grid
-from residuecontext.vanderwaals import get_vanderderwaals_grid
+from residuecontext.vanderwaals import get_vanderderwaals_grids
 
 
 queue = Celery('tasks',

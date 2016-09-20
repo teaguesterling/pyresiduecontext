@@ -11,68 +11,60 @@ import copy
 import numpy as np
 
 
-def read_outchem(outchem):
-    lines = list(outchem)
+def load_solv_grid(solvfile):
+    with open(solvfile) as f:
+        header = next(f)
+        header_tokens = header.strip().split()  # This should be safe
+        gridpoints = [
+            int(header_tokens[0]),
+            int(header_tokens[1]),
+            int(header_tokens[2]),
+        ]
+        spacing = int(header_tokens[3])
+        center = [
+            float(header_tokens[4]),
+            float(header_tokens[5]),
+            float(header_tokens[6]),
+        ]
 
-    center = np.loadtxt(lines[9:10], dtype=np.float)
-    spacing = float(lines[14].strip())
-    gridpoints = np.loadtxt(lines[16:17], dtype=np.float)
+        scale = 1.0 / spacing
+        size = max(*gridpoints)
 
-    return center, spacing, gridpoints
+        # Padding
+        array = np.empty([
+            gridpoints[0],
+            gridpoints[1],
+            gridpoints[2],
+        ])
 
+        # Copy of the DOCK sovl parser
+        for i in range(gridpoints[0]):
+            for j in range(gridpoints[1]):
+                for k in range(0, gridpoints[2], 13):
+                    line = next(f)
+                    line_data = np.loadtxt([line], dtype=np.float)
+                    if k + 12 <= gridpoints[2]:
+                        array[i, j, k:k+12] = line_data[:12]
+                    else:
+                        array[i, j, k:gridpoints[2]] = line_data[gridpoints[2]-k]
 
-def load_vdw_grids(outchem, vdwfile):
-    with open(outchem) as f:
-        center, spacing, gridpoints = read_outchem(f)
+    accessibility = solventaccessibility(array,
+                                         scale=scale,
+                                         center=center,
+                                         size=size,
+                                         name='Desolvation Penalty')
 
-    scale = 1.0 / spacing
-    size = int(max(*gridpoints))
-
-    vdwA, vdwB = load_vdwgrids(vdwfile, gridpoints=gridpoints, byteswap=True)
-
-
-
-    vdw_attractive = vanderwaals(vdwA,
-                                 scale=scale,
-                                 center=center,
-                                 size=size,
-                                 name='Attractive VdW')
-
-    vdw_repulsive = vanderwaals(vdwB,
-                                 scale=scale,
-                                 center=center,
-                                 size=size,
-                                 name='Repulsive VdW')
-
-    return vdw_attractive, vdw_repulsive
-
-
-def load_vdwgrids(vdwfile, gridpoints=None, byteswap=True):
-    if byteswap:
-        vdw = np.fromfile(vdwfile, dtype='>f4')
-    else:
-        vdw = np.fromfile(vdwfile, dtype='<f4')
-
-    vdwA, vdwB = vdw.reshape((2, -1))[:,1:-1]
-
-    if gridpoints is not None:
-        vdwA = vdwA.reshape(*gridpoints, order='f')
-        vdwB = vdwB.reshape(*gridpoints, order='f')
-    else:
-        vdwA = vdwA.reshape(order='f')
-        vdwB = vdwB.reshape(order='f')
-
-    return vdwA, vdwB
+    return accessibility
 
 
-class vanderwaals(object):
+class solventaccessibility(object):
 
-  def __init__(self, array, scale, size, center=(0,0,0), name="VDW Grid"):
+  def __init__(self, array, scale, size, center=(0,0,0), name="Desolvation Penalty"):
     '''reads the phi file from disk'''
 
     self.gridDimension = size
     self.scale = scale
-    self.vdwArray = array
+    self.saArray = array
     self.oldmid = center
     self.toplabel = name
     self.title = ""
@@ -81,27 +73,27 @@ class vanderwaals(object):
     self.__minsmaxs = None
     self.__boundaries = None
 
-  def copyPhi(self):
+  def copySa(self):
     '''make a deep copy of the phimap that can be edited without disturbing the
     original.'''
-    newVdw = vanderwaals()
+    newVdw = solventaccessibility()
     newVdw.oldmid = self.oldmid
     newVdw.scale = self.scale
-    newVdw.vdwArray = self.vdwArray
+    newVdw.saArray = self.saArray
     newVdw.gridDimension = self.gridDimension
     newVdw.__minsmaxs = None
     newVdw.__boundaries = None
     return newVdw
 
-  def write(self, phiFileName=False):
+  def write(self, saFileName=False):
     '''write data to member data structure manually,
     then call this to write to file
     the pad lines reproduce the binary padding of an original
     fortran formatted phi file'''
-    if phiFileName:  # do nothing if no filename given
-      outArray = copy.deepcopy(self.vdwArray)
+    if saFileName:  # do nothing if no filename given
+      outArray = copy.deepcopy(self.saArray)
       outArray.byteswap()  # switch endianness back, only for writing
-      phiFile = open(phiFileName, 'wb')  # b may be unnecessary, have to check
+      phiFile = open(saFileName, 'wb')  # b may be unnecessary, have to check
       phiFile.write(struct.pack('4b', 0, 0, 0, 20))  # pad
       phiFile.write(struct.pack('20s', self.toplabel))
       phiFile.write(struct.pack('8b', 0, 0, 0, 20, 0, 0, 0, 70))  # pad
@@ -125,7 +117,7 @@ class vanderwaals(object):
     '''for a new center index and a desired cubic grid size, trim the current
     phimap and return the new trimmed phimap'''
     plusMinus = (newSize - 1) / 2  # how many to add or subtract from the center
-    newPhi = vanderwaals()
+    newPhi = solventaccessibility()
     newPhi.oldmid = self.getXYZlist(newmidIndices)  # only change of these data
     newPhi.toplabel = self.toplabel
     newPhi.head = self.head
@@ -188,30 +180,30 @@ class vanderwaals(object):
 
   def getMinMaxValues(self):
     '''finds the minimum and maximum value'''
-    return min(self.vdwArray), max(self.vdwArray)
+    return min(self.saArray), max(self.saArray)
 
   def getMeanAbsoluteValues(self):
     '''takes the abs value of each phi value, then the average'''
     sum = 0.0
-    for value in self.vdwArray:
+    for value in self.saArray:
       sum += math.fabs(value)
-    return sum/float(len(self.vdwArray))
+    return sum/float(len(self.saArray))
 
   def getMeanValues(self):
     '''mean of all phi values'''
     sum = 0.0
-    for value in self.vdwArray:
+    for value in self.saArray:
       sum += value
-    return sum/float(len(self.vdwArray))
+    return sum/float(len(self.saArray))
 
   def getMaxValues(self):
     '''just the max'''
-    return max(self.vdwArray)
+    return max(self.saArray)
 
   def countValues(self):
     '''counts the occurence of each value'''
     counts = {}
-    for value in self.vdwArray:
+    for value in self.saArray:
       if value in counts:
         counts[value] += 1
       else:
@@ -227,7 +219,7 @@ class vanderwaals(object):
       ends[1] = useMax
     bars = int(math.ceil((ends[1] - ends[0]) / width) + 1)
     counts = [0 for x in range(bars)]
-    for value in self.vdwArray:
+    for value in self.saArray:
       if value >= ends[0] and value <= ends[1]:
         counts[int(math.floor((value - ends[0]) / width))] += 1
     return counts
@@ -249,7 +241,7 @@ class vanderwaals(object):
   def getValue(self, xInd, yInd, zInd):
     '''for a given set of indices, return the value in the array'''
     index = int(zInd*(self.gridDimension**2.) + yInd*self.gridDimension + xInd)
-    return self.vdwArray[index]
+    return self.saArray[index]
 
   def getValueListCheckBounds(self, xyzList, retValueIfBad=0):
     '''passes to getValueCheckBounds'''
@@ -273,18 +265,18 @@ class vanderwaals(object):
   def setValue(self, xInd, yInd, zInd, value):
     '''puts the value into the phi array'''
     index = int(zInd*(self.gridDimension**2.) + yInd*self.gridDimension + xInd)
-    self.vdwArray[index] = value
+    self.saArray[index] = value
 
   def transform(self, threshold=6.0, inside=-2.0, outside=-1.0):
     '''for every value in the array, change it to inside or outside,
     destructively overwrites old values'''
-    for index in range(len(self.vdwArray)):
-      value = self.vdwArray[index]
+    for index in range(len(self.saArray)):
+      value = self.saArray[index]
       if value < threshold:
         where = outside
       else:
         where = inside
-      self.vdwArray[index] = where
+      self.saArray[index] = where
 
   def translate(self, newmid):
       oldmin = self.oldmid
@@ -312,10 +304,10 @@ class vanderwaals(object):
   def modify(self, other, change):
     '''modify other to self, destructively write over self. allows +-/etc
     presume without checking that grids are compatible (same mid etc)'''
-    for index in range(len(self.vdwArray)):
-      value = other.vdwArray[index]
+    for index in range(len(self.saArray)):
+      value = other.saArray[index]
       #save = self.phiArray[index]
-      self.vdwArray[index] += (value * change)
+      self.saArray[index] += (value * change)
       #if self.phiArray[index] != 0.0:
       #  print self.phiArray[index], value, save, index
 
@@ -380,14 +372,14 @@ class vanderwaals(object):
         newGridSize = possibleGridSize
     self.gridDimension = newGridSize
     #now take care of the grid
-    self.vdwArray = array.array('f')
+    self.saArray = array.array('f')
     for z in range(self.gridDimension):
       for y in range(self.gridDimension):
         for x in range(self.gridDimension):
           if x < lens[0] and y < lens[1] and z < lens[2]:
-            self.vdwArray.append(grid[x][y][z][0])
+            self.saArray.append(grid[x][y][z][0])
           else:  # outside real grid
-            self.vdwArray.append(defaultValue)
+            self.saArray.append(defaultValue)
     #scale and oldmid are all that is left
     self.scale = 1./gridSize
     for coord in range(3):
