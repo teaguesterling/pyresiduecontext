@@ -10,10 +10,16 @@ from six import StringIO
 import numpy as np
 import sh
 
-from residuecontext import phigrid
-from residuecontext.pdbfiles import split_ext_gz
-from residuecontext.prepare_structure import get_charged_pdb
-from residuecontext.accessibilitygrid import load_solv_grid
+try:
+    from residuecontext import phigrid
+    from residuecontext.pdbfiles import split_ext_gz
+    from residuecontext.prepare_structure import get_charged_pdb
+    from residuecontext.accessibilitygrid import load_solv_grid
+except ImportError:
+    import phigrid
+    from pdbfiles import split_ext_gz
+    from prepare_structure import get_charged_pdb
+    from accessibilitygrid import load_solv_grid
 
 SOLVMAP_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'solvmap')
 

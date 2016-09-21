@@ -16,10 +16,16 @@ from Bio.PDB.PDBIO import (
 
 import numpy as np
 
-from residuecontext.config import (
-    STATIC_PDB_DIR,
-    ALIGNMENT_JOB_DIR,
-)
+try:
+    from residuecontext.config import (
+        STATIC_PDB_DIR,
+        ALIGNMENT_JOB_DIR,
+    )
+except ImportError:
+    from config import (
+        STATIC_PDB_DIR,
+        ALIGNMENT_JOB_DIR,
+    )
 
 STATIC_PDB_LIST = PDBList(pdb=STATIC_PDB_DIR)
 

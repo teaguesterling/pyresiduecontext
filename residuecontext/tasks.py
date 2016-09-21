@@ -12,25 +12,46 @@ import werkzeug.security
 
 from celery import Celery
 
-from residuecontext.config import (
-    ALIGNMENT_JOB_DIR,
-    ALIGNMENT_DATA_FILE,
-)
-from residuecontext.pdbfiles import (
-    get_pdb_selection,
-    extract_ident,
-    ident_to_biojava,
-    ident_to_rcontext,
-)
-from residuecontext.biojava_alignment import (
-    BIOJAVA_CE_CLASS,
-    BIOJAVA_FATCAT_CLASS,
-    run_biojava_alignment,
-)
-from residuecontext.rcontext_alignment import run_residuecontext_alignment
-from residuecontext.dalilite_alignment import run_dalilite_alignment
-from residuecontext.electrostatics import get_electrostatics_grid
-from residuecontext.vanderwaals import get_vanderderwaals_grids
+try:
+    from residuecontext.config import (
+        ALIGNMENT_JOB_DIR,
+        ALIGNMENT_DATA_FILE,
+    )
+    from residuecontext.pdbfiles import (
+        get_pdb_selection,
+        extract_ident,
+        ident_to_biojava,
+        ident_to_rcontext,
+    )
+    from residuecontext.biojava_alignment import (
+        BIOJAVA_CE_CLASS,
+        BIOJAVA_FATCAT_CLASS,
+        run_biojava_alignment,
+    )
+    from residuecontext.rcontext_alignment import run_residuecontext_alignment
+    from residuecontext.dalilite_alignment import run_dalilite_alignment
+    from residuecontext.electrostatics import get_electrostatics_grid
+    from residuecontext.vanderwaals import get_vanderderwaals_grids
+except ImportError:
+    from config import (
+        ALIGNMENT_JOB_DIR,
+        ALIGNMENT_DATA_FILE,
+    )
+    from pdbfiles import (
+        get_pdb_selection,
+        extract_ident,
+        ident_to_biojava,
+        ident_to_rcontext,
+    )
+    from biojava_alignment import (
+        BIOJAVA_CE_CLASS,
+        BIOJAVA_FATCAT_CLASS,
+        run_biojava_alignment,
+    )
+    from rcontext_alignment import run_residuecontext_alignment
+    from dalilite_alignment import run_dalilite_alignment
+    from electrostatics import get_electrostatics_grid
+    from vanderwaals import get_vanderderwaals_grids
 
 
 queue = Celery('tasks',
@@ -39,8 +60,8 @@ queue = Celery('tasks',
 queue.conf['CELERY_RESULT_DB_SHORT_LIVED_SESSIONS'] = True
 
 @queue.task
-def run_alignment_comparisons(number, code1, code2):
-    working_dir = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, str(number))
+def run_alignment_comparisons(identifier, code1, code2):
+    working_dir = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, str(identifier))
 
     if os.path.exists(working_dir):
         shutil.rmtree(working_dir)
@@ -131,8 +152,8 @@ def run_alignment_comparisons(number, code1, code2):
         ident_to_rcontext(pdbid1, chain1),
         ident_to_rcontext(pdbid2, chain2),
         alignment=os.path.join(dali_dir, alignment_basename),
-        translation=os.path.join(dali_dir, translated_basename),
-        transformed=os.path.join(dali_dir, transform_basename),
+        translation=os.path.join(dali_dir, transform_basename),
+        transformed=os.path.join(dali_dir, translated_basename),
         pdb1=pdb1,
         pdb2=pdb2
     )

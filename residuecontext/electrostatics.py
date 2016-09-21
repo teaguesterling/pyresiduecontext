@@ -9,11 +9,16 @@ from six import StringIO
 
 import sh
 
-from residuecontext import phigrid
-from residuecontext.config import QNIFFT_DIR
-from residuecontext.pdbfiles import split_ext_gz
-from residuecontext.prepare_structure import get_charged_pdb
-
+try:
+    from residuecontext import phigrid
+    from residuecontext.config import QNIFFT_DIR
+    from residuecontext.pdbfiles import split_ext_gz
+    from residuecontext.prepare_structure import get_charged_pdb
+except ImportError:
+    import phigrid
+    from config import QNIFFT_DIR
+    from pdbfiles import split_ext_gz
+    from prepare_structure import get_charged_pdb
 
 def grid_parser(path):
     return phigrid.phi(path, is64=False, byteswap=False)

@@ -10,10 +10,17 @@ from six import StringIO
 import numpy as np
 import sh
 
-from residuecontext import phigrid
-from residuecontext.pdbfiles import split_ext_gz
-from residuecontext.prepare_structure import get_charged_pdb
-from residuecontext.vdwgrid import load_vdw_grids
+try:
+    from residuecontext import phigrid
+    from residuecontext.pdbfiles import split_ext_gz
+    from residuecontext.prepare_structure import get_charged_pdb
+    from residuecontext.vdwgrid import load_vdw_grids
+except ImportError:
+
+    import phigrid
+    from pdbfiles import split_ext_gz
+    from prepare_structure import get_charged_pdb
+    from vdwgrid import load_vdw_grids
 
 CHEMGRID_DIR = os.path.join(os.path.dirname(__file__), 'scripts', 'chemgrid')
 

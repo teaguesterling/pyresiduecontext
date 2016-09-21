@@ -15,11 +15,16 @@ from BeautifulSoup import BeautifulSoup
 
 import sh
 
-
-from residuecontext.config import (
-    DALILITE_DIR,
-)
-from residuecontext.pdbfiles import split_ext_gz, get_pdb_selection
+try:
+    from residuecontext.config import (
+        DALILITE_DIR,
+    )
+    from residuecontext.pdbfiles import split_ext_gz, get_pdb_selection
+except ImportError:
+    from config import (
+        DALILITE_DIR,
+    )
+    from pdbfiles import split_ext_gz, get_pdb_selection
 
 
 DALILITE_ENV = os.environ.copy()

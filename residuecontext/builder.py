@@ -16,8 +16,10 @@ from Bio.PDB.Polypeptide import three_to_one as residue_three_code_to_one_code
 
 import time
 
-
-from residuecontext.pdbfiles import PDBParser
+try:
+    from residuecontext.pdbfiles import PDBParser
+except ImportError:
+    from pdbfiles import PDBParser
 
 
 def ball_mask(shape):
@@ -37,32 +39,56 @@ def ball_mask(shape):
     return masked
 
 
-def array_from_grid(grid):
+def array_from_grid(grid, **kwargs):
     if hasattr(grid, 'phiArray'):
-        return array_from_phi(grid)
+        return array_from_phi(grid, **kwargs)
     elif hasattr(grid, 'vdwArray'):
-        return array_from_vdw(grid)
+        return array_from_vdw(grid, **kwargs)
     elif hasattr(grid, 'saArray'):
-        return array_from_sa(grid)
+        return array_from_sa(grid, **kwargs)
 
 
-def array_from_phi(phi):
-    array = np.array(phi.phiArray).reshape(phi.gridDimension, phi.gridDimension, phi.gridDimension)
+def array_from_phi(phi, **kwargs):
+    array = np.array(phi.phiArray).reshape(phi.gridDimension, phi.gridDimension, phi.gridDimension, **kwargs)
     return array
 
 
-def array_from_vdw(vdw):
-    array = np.array(vdw.vdwArray).reshape(vdw.gridDimension, vdw.gridDimension, vdw.gridDimension)
+def array_from_vdw(vdw, **kwargs):
+    array = np.array(vdw.vdwArray).reshape(vdw.gridDimension, vdw.gridDimension, vdw.gridDimension, **kwargs)
     return array
 
 
-def array_from_sa(sa):
-    array = np.array(sa.saArray).reshape(sa.gridDimension, sa.gridDimension, sa.gridDimension)
+def array_from_sa(sa, **kwargs):
+    array = np.array(sa.saArray).reshape(sa.gridDimension, sa.gridDimension, sa.gridDimension, **kwargs)
     return array
 
 
+def ndmesh(*args):
+    args = map(np.asarray,args)
+    arrays = np.broadcast_arrays(*[x[(slice(None),)+(None,)*i] for i, x in enumerate(args)])
+    return arrays
 
-def get_grid_sphere_at_point(phi, center, boxStep=None, boxSize=np.e ** 2):
+
+def get_grid_data(grid):
+    step = 1.0 / grid.scale
+    points_per_dimension = grid.gridDimension
+    grid_center = np.array(grid.oldmid)
+    min_corner = grid_center - points_per_dimension // 2 * step
+    max_corner = grid_center + points_per_dimension // 2 * step
+    limits = np.transpose([
+        min_corner,
+        max_corner
+    ])
+
+    ticks = [np.arange(low, high, step) for low, high in limits]
+    mesh = ndmesh(*ticks)
+
+    values = array_from_grid(grid, order='f')
+
+    return mesh, values
+
+
+def get_grid_sphere_at_point(phi, center, boxStep=None, boxSize=np.e ** 2, clip=None):
     step = 1 / phi.scale
     dim = phi.gridDimension
     grid_center = np.array(phi.oldmid)
@@ -76,6 +102,7 @@ def get_grid_sphere_at_point(phi, center, boxStep=None, boxSize=np.e ** 2):
     #GP1 = [np.linspace(X0, X1, gridDim) for X0, X1 in gridExtents.transpose()]
 
     array = array_from_grid(phi)
+
     grid_coords = [np.arange(C - boxSize, C + boxSize, boxStep) for C in center]
 
     XYZ = np.transpose(grid_coords)
@@ -98,18 +125,24 @@ def get_grid_sphere_at_point(phi, center, boxStep=None, boxSize=np.e ** 2):
     # XXX: Removing sphere masking
     #pSphere = np.sign(cBox) * np.clip(np.log(np.abs(cBox)), 0, None)
     #pSphere = ma.array(pSphere, mask=ball_mask(pSphere.shape))
-    pSphere = np.clip(cBox, -7, 7)
+    if clip:
+        pSphere = np.clip(cBox, *clip)
+    else:
+        pSphere = cBox
 
     return cXYZ, pSphere
 
 
 def create_grid_histogram(phi, center, bins=50, extents=None, params=None, **kwargs):
-    coords, values = get_grid_sphere_at_point(phi, center,
-                                              boxStep=kwargs.pop('boxStep', None),
-                                              boxSize=kwargs.pop('boxSize', np.e ** 2))
+    #coords, values = get_grid_sphere_at_point(phi, center,
+    #                                          boxStep=kwargs.pop('boxStep', None),
+    #                                          boxSize=kwargs.pop('boxSize', np.e ** 2))
+
+
+    coords, values = get_grid_data(phi)
 
     params = params or SphericalHistogramParams(**kwargs)
-    grid_points = coords.transpose()
+    grid_points = np.transpose(coords)
     points = grid_points.reshape(-1, 3)
 
     builder = SphericalHistogramBuilder(params)
@@ -145,20 +178,23 @@ def create_grid_histogram(phi, center, bins=50, extents=None, params=None, **kwa
 
 
 def create_paired_grid_histogram(vdwA, vdwB, center, bins=50, extents=None, params=None, **kwargs):
-    coordsA, valuesA = get_grid_sphere_at_point(vdwA, center,
-                                              boxStep=kwargs.pop('boxStep', None),
-                                              boxSize=kwargs.pop('boxSize', np.e ** 2))
+    # coordsA, valuesA = get_grid_sphere_at_point(vdwA, center,
+    #                                           boxStep=kwargs.pop('boxStep', None),
+    #                                           boxSize=kwargs.pop('boxSize', np.e ** 2))
+    #
+    # coordsB, valuesB = get_grid_sphere_at_point(vdwB, center,
+    #                                             boxStep=kwargs.pop('boxStep', None),
+    #                                             boxSize=kwargs.pop('boxSize', np.e ** 2))
 
-    coordsB, valuesB = get_grid_sphere_at_point(vdwB, center,
-                                                boxStep=kwargs.pop('boxStep', None),
-                                                boxSize=kwargs.pop('boxSize', np.e ** 2))
+    coordsA, valuesA = get_grid_data(vdwA)
+    coordsB, valuesB = get_grid_data(vdwB)
 
     params = params or SphericalHistogramParams(**kwargs)
 
-    grid_pointsA = coordsA.transpose()
+    grid_pointsA = np.transpose(coordsA)
     pointsA = grid_pointsA.reshape(-1, 3)
 
-    grid_pointsB = coordsB.transpose()
+    grid_pointsB = np.transpose(coordsB)
     pointsB = grid_pointsB.reshape(-1, 3)
 
     builder = SphericalHistogramBuilder(params)

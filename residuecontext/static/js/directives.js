@@ -57,7 +57,7 @@
                     ].join(';'),
                     options = {
                         width: "100%",
-                        height: 575,
+                        height: 500,
                         debug: false,
                         use: "JAVA HTML5 WEBGL",   // JAVA HTML5 WEBGL are all options
                         jarPath: "/static/lib/jsmol/java",

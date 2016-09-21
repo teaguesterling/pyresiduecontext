@@ -276,7 +276,7 @@ angular.module('ResCtxVis.services', [
                 "delete $" + binPrefix + "*",
                 "draw " + binPrefix + "self DIAMETER 25 POINTS [ { " + bins.center.join(' ') + " } ] COLOR red "
             ];
-            for(var i = oneRadialSize; i < bins.planes.length; i++) {
+            for(var i = 0; i < bins.planes.length; i++) {
                 var binName = binPrefix + i,
                     iPrevious = i - oneRadialSize
                 if(includeEmpty || !bins.empty[i]) {
@@ -360,7 +360,7 @@ angular.module('ResCtxVis.services', [
                         + " FILL MESH "
                     );
                 } else {
-                    script.push(
+                    Jmol.script(applet,
                         "draw " + binName
                         + " polygon 5 "
                         + "{" + bins.planes[i][0].join(' ') + "} "

@@ -138,3 +138,9 @@ svg .polar-bin {
     width: inherit;
     display: inline-block;
 }
+
+.active-hist-mode-selector-wrapper {
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}

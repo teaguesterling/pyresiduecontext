@@ -8,12 +8,18 @@ import tempfile
 
 import sh
 
-
-from residuecontext.builder import (
-    ResidueContextParams,
-    ContextBuilder,
-)
-from residuecontext.pdbfiles import get_pdb_selection
+try:
+    from residuecontext.builder import (
+        ResidueContextParams,
+        ContextBuilder,
+    )
+    from residuecontext.pdbfiles import get_pdb_selection
+except ImportError:
+    from builder import (
+        ResidueContextParams,
+        ContextBuilder,
+    )
+    from pdbfiles import get_pdb_selection
 
 
 def create_context_from_pdb_code(code, chain):

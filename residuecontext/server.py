@@ -17,34 +17,60 @@ from flask import (
     url_for,
     json
 )
-
-from residuecontext.config import (
-    ALIGNMENT_JOB_DIR,
-    ALIGNMENT_DATA_FILE,
-)
-from residuecontext.builder import (
-    ResidueContextParams,
-    ContextBuilder,
-    create_grid_histogram,
-    create_paired_grid_histogram,
-)
-from residuecontext.helpers import (
-    get_pdb_selection,
-    create_context_from_pdb_code,
-    chain_context_to_jsonable,
-)
-from residuecontext.pdbfiles import (
-    get_pdb_selection,
-    read_alignment_file,
-    extract_ident,
-)
-from residuecontext.tasks import (
-    run_alignment_comparisons,
-)
-from residuecontext.electrostatics import get_electrostatics_grid
-from residuecontext.vanderwaals import get_vanderderwaals_grids
-from residuecontext.accessibility import get_solvation_grid
-
+try:
+    from residuecontext.config import (
+        ALIGNMENT_JOB_DIR,
+        ALIGNMENT_DATA_FILE,
+    )
+    from residuecontext.builder import (
+        ResidueContextParams,
+        ContextBuilder,
+        create_grid_histogram,
+        create_paired_grid_histogram,
+    )
+    from residuecontext.helpers import (
+        get_pdb_selection,
+        create_context_from_pdb_code,
+        chain_context_to_jsonable,
+    )
+    from residuecontext.pdbfiles import (
+        get_pdb_selection,
+        read_alignment_file,
+        extract_ident,
+    )
+    from residuecontext.tasks import (
+        run_alignment_comparisons,
+    )
+    from residuecontext.electrostatics import get_electrostatics_grid
+    from residuecontext.vanderwaals import get_vanderderwaals_grids
+    from residuecontext.accessibility import get_solvation_grid
+except ImportError:
+    from config import (
+        ALIGNMENT_JOB_DIR,
+        ALIGNMENT_DATA_FILE,
+    )
+    from builder import (
+        ResidueContextParams,
+        ContextBuilder,
+        create_grid_histogram,
+        create_paired_grid_histogram,
+    )
+    from helpers import (
+        get_pdb_selection,
+        create_context_from_pdb_code,
+        chain_context_to_jsonable,
+    )
+    from pdbfiles import (
+        get_pdb_selection,
+        read_alignment_file,
+        extract_ident,
+    )
+    from tasks import (
+        run_alignment_comparisons,
+    )
+    from electrostatics import get_electrostatics_grid
+    from vanderwaals import get_vanderderwaals_grids
+    from accessibility import get_solvation_grid
 
 app = Flask(__name__)
 
@@ -129,7 +155,7 @@ def get_phi_context(ident, alignment_id=None, kind=None):
     if chain == '_':
         chain = None
     coords = map(float, request.args['coords'].split())
-    app.logger.info("Starting generation of {}".format(pdbid))
+    app.logger.info("Starting electrostatic generation of {}".format(pdbid))
     start = time.time()
     phi = get_electrostatics_grid(pdbid, chain=chain, alignment_id=root)
     download_time = time.time() - start
@@ -183,7 +209,7 @@ def get_vdw_context(ident, alignment_id=None, kind=None):
     if chain == '_':
         chain = None
     coords = map(float, request.args['coords'].split())
-    app.logger.info("Starting generation of {}".format(pdbid))
+    app.logger.info("Starting electrostatic generation of {}".format(pdbid))
     start = time.time()
     phi = get_electrostatics_grid(pdbid, chain=chain, alignment_id=root)
     download_time = time.time() - start
@@ -199,7 +225,7 @@ def get_vdw_context(ident, alignment_id=None, kind=None):
                                                              scale=1/phi.scale)
 
     start = time.time()
-    app.logger.info("Starting grid context generation of {}".format(ident))
+    app.logger.info("Starting vdw grid context generation of {}".format(ident))
     grid_histograms = create_paired_grid_histogram(vdw_attractive,
                                                    vdw_repulsive,
                                                    coords,
@@ -246,7 +272,7 @@ def get_sa_context(ident, alignment_id=None, kind=None):
     if chain == '_':
         chain = None
     coords = map(float, request.args['coords'].split())
-    app.logger.info("Starting generation of {}".format(pdbid))
+    app.logger.info("Starting electrostatic generation of {}".format(pdbid))
     start = time.time()
     phi = get_electrostatics_grid(pdbid, chain=chain, alignment_id=root)
     download_time = time.time() - start
@@ -261,7 +287,7 @@ def get_sa_context(ident, alignment_id=None, kind=None):
                                                box=phi)
 
     start = time.time()
-    app.logger.info("Starting grid context generation of {}".format(ident))
+    app.logger.info("Starting solvent grid context generation of {}".format(ident))
     grid_histograms = create_grid_histogram(solvent_accessibility, coords, extents=(0, 1))
     generate_time = time.time() - start
 
@@ -299,8 +325,8 @@ def get_pdb(pdb, alignment_id=None, kind=None):
         root = alignment_id
     else:
         root = None
-    pdb = get_pdb_selection(pdb, chain=None, model=None, alignment_id=root)
-    return send_file(pdb, mimetype='chemical/pdb')
+    pdb_data = get_pdb_selection(pdb, chain=None, model=None, alignment_id=root)
+    return send_file(pdb_data, mimetype='chemical/pdb')
 
 
 @app.route('/alignments/<alignment_id>/alignment.json', defaults={'kind': None})
@@ -336,7 +362,7 @@ def submit_alignment():
     code2 = request.values['ident2']
 
     # Synchronous for testing!!!
-    alignment_id = 1
+    alignment_id = '{0}-{1}'.format(code1, code2)
     run_alignment_comparisons(alignment_id, code1, code2)
     return jsonify({
         'alignment_id': alignment_id,

@@ -8,16 +8,26 @@ import tempfile
 
 import sh
 
-from residuecontext.config import (
-    BIOJAVA_DIR,
-    JAVA_RUNTIME,
-)
-from residuecontext.pdbfiles import (
-    split_ext_gz,
-    get_pdb_selection,
-    extract_ident,
-)
-
+try:
+    from residuecontext.config import (
+        BIOJAVA_DIR,
+        JAVA_RUNTIME,
+    )
+    from residuecontext.pdbfiles import (
+        split_ext_gz,
+        get_pdb_selection,
+        extract_ident,
+    )
+except ImportError:
+    from config import (
+        BIOJAVA_DIR,
+        JAVA_RUNTIME,
+    )
+    from pdbfiles import (
+        split_ext_gz,
+        get_pdb_selection,
+        extract_ident,
+    )
 
 BIOJAVA_CLASSPATH = os.path.join(BIOJAVA_DIR, "jars", "*")
 BIOJAVA_CE_CLASS = "org.biojava.bio.structure.align.ce.CeMain"

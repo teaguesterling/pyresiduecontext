@@ -12,12 +12,18 @@ from six import StringIO
 
 import sh
 
-
-from residuecontext.config import (
-    RESIDUE_CONTEXT_DIR,
-    JAVA_RUNTIME,
-)
-from residuecontext.pdbfiles import split_ext_gz, get_pdb_selection
+try:
+    from residuecontext.config import (
+        RESIDUE_CONTEXT_DIR,
+        JAVA_RUNTIME,
+    )
+    from residuecontext.pdbfiles import split_ext_gz, get_pdb_selection
+except ImportError:
+    from config import (
+        RESIDUE_CONTEXT_DIR,
+        JAVA_RUNTIME,
+    )
+    from pdbfiles import split_ext_gz, get_pdb_selection
 
 
 RESIDUE_CONTEXT_CLASSPATH = os.path.join(RESIDUE_CONTEXT_DIR, 'jars', '*')
