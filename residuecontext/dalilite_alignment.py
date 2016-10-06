@@ -11,7 +11,10 @@ import tempfile
 from six.moves.urllib import parse
 
 import numpy as np
-from BeautifulSoup import BeautifulSoup
+try:
+    from BeautifulSoup import BeautifulSoup
+except ImportError:
+    from bs4 import BeautifulSoup
 
 import sh
 
@@ -27,12 +30,14 @@ except ImportError:
     from pdbfiles import split_ext_gz, get_pdb_selection
 
 
+DALILITE_BASE_VAR = 'DALI_SERVER_HOME'
 DALILITE_ENV = os.environ.copy()
 DALILITE_ENV['PATH'] += os.pathsep + DALILITE_DIR
 
 ALIGNMENT_TEMP_PDB = "aligned.pdb"
 ALIGNMENT_OUTPUT = "workingalignment.txt"
 
+# This is just for reference, we override these at run time
 _dalilite_cmd = sh.Command(os.path.join(DALILITE_DIR, 'DaliLite'))
 _dalilite_convert = _dalilite_cmd.bake('-readbrk')
 _dalilite_align = _dalilite_cmd.bake('-align')
@@ -177,15 +182,26 @@ def run_dalilite_alignment(
         formatted = '{0}{1}.html'.format(pdbid1, chain1)
         dccp = '{0}{1}.dccp'.format(pdbid2, chain2)
 
+        # We alias DaliLite into current tmp dir because DALI fails on long path names
+        tmp_bin = os.path.join(exec_dir, 'bin')
+        os.symlink(DALILITE_DIR, tmp_bin)
+        env = DALILITE_ENV.copy()
+        env[DALILITE_BASE_VAR] = tmp_bin
+
+        local_dalilite_cmd = sh.Command(os.path.join(tmp_bin, 'DaliLite'))
+        local_dalilite_convert = local_dalilite_cmd.bake('-readbrk')
+        local_dalilite_align = local_dalilite_cmd.bake('-align')
+        local_dalilite_format = local_dalilite_cmd.bake('-format')
+
         logging.info("Preparing PDB inputs in {0}".format(exec_dir))
-        _convert_cmd = _dalilite_convert.bake(_cwd=exec_dir, _err=log, _env=DALILITE_ENV)
+        _convert_cmd = local_dalilite_convert.bake(_cwd=exec_dir, _err=log, _env=env)
         for pdb, code in [(pdb1, pdbid1), (pdb2, pdbid2)]:
             entfile = "{0}.pdb".format(code)
             os.symlink(pdb, os.path.join(exec_dir, entfile))
             _convert_cmd(entfile, code)
 
         # The PDBIDs are intentionally reversed here
-        align_cmd = _dalilite_align.bake(
+        align_cmd = local_dalilite_align.bake(
             "{0}{1}".format(pdbid2, chain2),
             "{0}{1}".format(pdbid1, chain1)
         )
@@ -193,10 +209,10 @@ def run_dalilite_alignment(
         align_cmd(
             _cwd=exec_dir,
             _err=log,
-            _env=DALILITE_ENV
+            _env=env
         )
 
-        _format_cmd = _dalilite_format.bake(
+        _format_cmd = local_dalilite_format.bake(
             "{0}{1}".format(pdbid1, chain1),
             dccp,
             'list1',
@@ -206,7 +222,7 @@ def run_dalilite_alignment(
         _format_cmd(
             _cwd=exec_dir,
             _err=log,
-            _env=DALILITE_ENV
+            _env=env
         )
 
         alignment_data = parse_dali_html(os.path.join(exec_dir, formatted))

@@ -2,6 +2,7 @@
 from __future__ import absolute_import, division, print_function
 
 import os
+import shutil
 import time
 import werkzeug.security
 
@@ -321,6 +322,7 @@ def get_sa_context(ident, alignment_id=None, kind=None):
 def get_pdb(pdb, alignment_id=None, kind=None):
     if kind is not None:
         root = werkzeug.security.safe_join(alignment_id, kind)
+        root = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, root)
     elif alignment_id is not None:
         root = alignment_id
     else:
@@ -339,19 +341,33 @@ def get_alignment_blocks(alignment_id, kind=None):
 @app.route('/alignments/<alignment_id>.json')
 def get_alignment_metadata(alignment_id):
     try:
-        alignment_folder = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, str(alignment_id))
-        with open(os.path.join(alignment_folder, ALIGNMENT_DATA_FILE)) as f:
-            params = json.load(f)
+        task = run_alignment_comparisons.AsyncResult(alignment_id)
     except Exception:
         raise abort(404)
+    if task is None:
+        raise abort(404)
+
+    code1, code2 = alignment_id.split('/')[0].split('-', 1)
+
     return jsonify({
         'alignment_id': alignment_id,
-        'state': 'complete',
-        'params': params,
+        'state': task.state,
+        'done': task.ready(),
+        'params': {
+            'structure1': {
+                'ident': code1,
+                'pdbid': code1[:4],
+            },
+            'structure2': {
+                'ident': code2,
+                'pdbid': code2[:4],
+            },
+        },
         'sub_alignments': {
             'ce': '{0}/ce'.format(alignment_id),
             'fatcat': '{0}/fatcat'.format(alignment_id),
             'rcontext': '{0}/rcontext'.format(alignment_id),
+            'dali': '{0}/dali'.format(alignment_id),
         }
     })
 
@@ -361,12 +377,23 @@ def submit_alignment():
     code1 = request.values['ident1']
     code2 = request.values['ident2']
 
-    # Synchronous for testing!!!
     alignment_id = '{0}-{1}'.format(code1, code2)
-    run_alignment_comparisons(alignment_id, code1, code2)
+
+    task = run_alignment_comparisons.AsyncResult(alignment_id)
+    job_dir = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, str(alignment_id))
+
+    if task is None or task.status not in ('RUNNING', 'SUCCESS') and not os.path.exists(job_dir):
+        task = run_alignment_comparisons.apply_async((alignment_id, code1, code2), task_id=alignment_id)
+
     return jsonify({
         'alignment_id': alignment_id,
-        'state': 'accepted'
+        'state': task.state,
+        'done': task.ready(),
+        'sub_alignments': {},
+        'params': {
+            'structure1': code1,
+            'structure2': code2,
+        }
     }, code=201)
 
 

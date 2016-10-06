@@ -144,3 +144,7 @@ svg .polar-bin {
     overflow-y: auto;
     overflow-x: hidden;
 }
+
+.loadingHist {
+    opacity: .5;
+}

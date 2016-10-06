@@ -128,7 +128,7 @@ def get_solvation_grid(code, chain=None, model=0, alignment_id=None,
     base, ext = split_ext_gz(protonated)
     box_file = base + '.box'
     solv = base + '.solv-heavy'
-    outsev = os.path.join(os.path.dirname(base), SOLVMAP_OUTSEV)
+    outsev = base + "." + SOLVMAP_OUTSEV
 
     if not os.path.exists(box_file) or box is not None:
         with open(box_file, 'w') as f:

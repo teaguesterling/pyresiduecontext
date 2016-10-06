@@ -188,8 +188,14 @@ def get_pdb_selection(code, chain=None, model=0, alignment_id=None, root=None, t
     code = os.path.basename(code)
 
     if alignment_id is not None:
-        root = root or ALIGNMENT_JOB_DIR
-        root = werkzeug.security.safe_join(root, str(alignment_id))
+        alignment_id = str(alignment_id)
+        if root is not None:
+            root = werkzeug.security.safe_join(root, alignment_id)
+        elif os.path.isdir(alignment_id):
+            root = alignment_id
+        else:
+            root = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, alignment_id)
+
 
     if root is None:
         path = STATIC_PDB_LIST.retrieve_pdb_file(code)

@@ -30,21 +30,34 @@ angular.module('ResCtxVis.controllers', [
         };
     }])
 
-    .controller('AlignedIndex', ['$scope','$route', 'AlignmentJob', function ($scope, $route, AlignmentJob){
+    .controller('AlignedIndex', ['$scope','$route', '$timeout', 'AlignmentJob', function ($scope, $route, $timeout, AlignmentJob){
+        $scope.ready = false;
         $scope.alignmentJob = {
             alignmentId: null,
             state: 'unknown',
+            done: false,
             sub_alignments: []
         };
-        $scope.alignmentRunId = $route.current.params.alignmentRunId
+        $scope.alignmentRunId = $route.current.params.alignmentRunId;
 
-        AlignmentJob.get({
-            alignmentRunId: $scope.alignmentRunId
-        }, function (alignment) {
+        var queryAlignment, receiveAlignment;
+
+        queryAlignment = function () {
+            AlignmentJob.get({alignmentRunId: $scope.alignmentRunId}, receiveAlignment);
+        };
+
+        receiveAlignment = function receiveAlignment (alignment) {
             $scope.alignment = alignment;
-            $scope.ident1 = alignment.params.structure1.ident;
-            $scope.ident2 = alignment.params.structure2.ident;
-        });
+            if(alignment.done) {
+                $scope.ready = true;
+                $scope.ident1 = alignment.params.structure1.ident;
+                $scope.ident2 = alignment.params.structure2.ident;
+            } else {
+                $timeout(queryAlignment, 1000);
+            }
+        };
+
+        queryAlignment();
     }])
 
     .controller('View2', [
@@ -79,6 +92,7 @@ angular.module('ResCtxVis.controllers', [
         '$route',
         '$location',
         '$interval',
+        '$timeout',
         'ChainContextFactory',
         'GridPointContextFactory',
         'JsMolChainColoring',
@@ -91,6 +105,7 @@ angular.module('ResCtxVis.controllers', [
             $route,
             $location,
             $interval,
+            $timeout,
             ChainContextFactory,
             GridPointContextFactory,
             JsMolChainColoring,
@@ -98,7 +113,8 @@ angular.module('ResCtxVis.controllers', [
             ResidueContextHeatMap,
             JsMolSphericalHistogram,
             ContextSvgPaths) {
-
+        $scope.loaded = false;
+        $scope.focusLoaded = false;
         $scope.absUrl = $location.protocol() + "://" + $location.host() + ":" + $location.port()    ;
 
         $scope.setIdentifier = function(identifier) {
@@ -157,6 +173,13 @@ angular.module('ResCtxVis.controllers', [
         };
 
         $scope.setActiveContext = function (index) {
+            $scope.focusLoaded = false;
+            $timeout(function(){
+                $scope.setActiveContextReal(index);
+            }, 1);
+        };
+
+        $scope.setActiveContextReal = function (index) {
             var currentBin = $scope.focus;
             $scope.active = {
                 index: index,
@@ -174,69 +197,77 @@ angular.module('ResCtxVis.controllers', [
             };
 
             $scope.esGridHistograms = null;
-            EsGridPointContext.get(
-                {
-                    identifier: $scope.identifier,
-                    coords: $scope.active.item.coords.join(' ')
-                }, function (data) {
-                    $scope.esGridHistograms = data.histograms;
-                    $scope.esGridHistogramsBrief = [];
-                    for(var idx = 0; idx < $scope.esGridHistograms.length; idx++) {
-                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
-                            rebinSize = $scope.esGridHistograms[idx].length / brief.length;
-                        for(var jdx = 0; jdx < $scope.esGridHistograms[idx].length; jdx++) {
-                            brief[Math.floor(jdx / rebinSize)] += $scope.esGridHistograms[idx][jdx];
-                        }
-                        $scope.esGridHistogramsBrief.push(brief);
-                    }
-                }
-            );
-
             $scope.vdwGridHistograms = null;
-            VdwGridPointContext.get(
-                {
-                    identifier: $scope.identifier,
-                    coords: $scope.active.item.coords.join(' ')
-                }, function (data) {
-                    $scope.vdwGridHistograms = data.histograms;
-                    $scope.vdwGridHistogramsBrief = [];
-                    for(var idx = 0; idx < $scope.vdwGridHistograms.length; idx++) {
-                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
-                            rebinSize = $scope.vdwGridHistograms[idx].length / brief.length;
-                        for(var jdx = 0; jdx < $scope.vdwGridHistograms[idx].length; jdx++) {
-                            brief[Math.floor(jdx / rebinSize)] += $scope.vdwGridHistograms[idx][jdx];
+            $timeout(function(){
+                EsGridPointContext.get(
+                    {
+                        identifier: $scope.identifier,
+                        coords: $scope.active.item.coords.join(' ')
+                    }, function (data) {
+                        $scope.esGridHistograms = data.histograms;
+                        $scope.esGridHistogramsBrief = [];
+                        for(var idx = 0; idx < $scope.esGridHistograms.length; idx++) {
+                            var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
+                                rebinSize = $scope.esGridHistograms[idx].length / brief.length;
+                            for(var jdx = 0; jdx < $scope.esGridHistograms[idx].length; jdx++) {
+                                brief[Math.floor(jdx / rebinSize)] += $scope.esGridHistograms[idx][jdx];
+                            }
+                            $scope.esGridHistogramsBrief.push(brief);
                         }
-                        $scope.vdwGridHistogramsBrief.push(brief);
+
+                        $timeout(function(){
+                            VdwGridPointContext.get(
+                                {
+                                    identifier: $scope.identifier,
+                                    coords: $scope.active.item.coords.join(' ')
+                                }, function (data) {
+                                    $scope.vdwGridHistograms = data.histograms;
+                                    $scope.vdwGridHistogramsBrief = [];
+                                    for(var idx = 0; idx < $scope.vdwGridHistograms.length; idx++) {
+                                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
+                                            rebinSize = $scope.vdwGridHistograms[idx].length / brief.length;
+                                        for(var jdx = 0; jdx < $scope.vdwGridHistograms[idx].length; jdx++) {
+                                            brief[Math.floor(jdx / rebinSize)] += $scope.vdwGridHistograms[idx][jdx];
+                                        }
+                                        $scope.vdwGridHistogramsBrief.push(brief);
+                                    }
+                                }
+                            );
+                        }, 100);
                     }
+                );
+            }, 5);
+
+//
+//            $scope.saGridHistograms = null;
+//            SaGridPointContext.get(
+//                {
+//                    identifier: $scope.identifier,
+//                    coords: $scope.active.item.coords.join(' ')
+//                }, function (data) {
+//                    $scope.saGridHistograms = data.histograms;
+//                    $scope.saGridHistogramsBrief = [];
+//                    for(var idx = 0; idx < $scope.saGridHistograms.length; idx++) {
+//                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
+//                            rebinSize = $scope.saGridHistograms[idx].length / brief.length;
+//                        for(var jdx = 0; jdx < $scope.saGridHistograms[idx].length; jdx++) {
+//                            brief[Math.floor(jdx / rebinSize)] += $scope.saGridHistograms[idx][jdx];
+//                        }
+//                        $scope.saGridHistogramsBrief.push(brief);
+//                    }
+//                }
+//            );
+            $timeout(function(){
+                $scope.resetHighlights();
+                $scope.sphericalBinData = JsMolSphericalHistogram($scope.jsmol, $scope.context, index);
+                $scope.sphericalBinData.center();
+
+                if(currentBin !== null && currentBin !== undefined) {
+                    $scope.setActiveBinHighlights(currentBin);
                 }
-            );
+                $scope.focusLoaded = true;
+            }, 1);
 
-            $scope.saGridHistograms = null;
-            SaGridPointContext.get(
-                {
-                    identifier: $scope.identifier,
-                    coords: $scope.active.item.coords.join(' ')
-                }, function (data) {
-                    $scope.saGridHistograms = data.histograms;
-                    $scope.saGridHistogramsBrief = [];
-                    for(var idx = 0; idx < $scope.saGridHistograms.length; idx++) {
-                        var brief = Array.apply(null, Array(10)).map(Number.prototype.valueOf,0),
-                            rebinSize = $scope.saGridHistograms[idx].length / brief.length;
-                        for(var jdx = 0; jdx < $scope.saGridHistograms[idx].length; jdx++) {
-                            brief[Math.floor(jdx / rebinSize)] += $scope.saGridHistograms[idx][jdx];
-                        }
-                        $scope.saGridHistogramsBrief.push(brief);
-                    }
-                }
-            );
-
-            $scope.resetHighlights();
-            $scope.sphericalBinData = JsMolSphericalHistogram($scope.jsmol, $scope.context, index);
-            $scope.sphericalBinData.center();
-
-            if(currentBin !== null && currentBin !== undefined) {
-                $scope.setActiveBinHighlights(currentBin);
-            }
         };
 
         $scope.changeContext = function(pdbid, chain) {
@@ -244,42 +275,50 @@ angular.module('ResCtxVis.controllers', [
         };
 
         $scope.setActiveBinHighlights = function (binNumber) {
-            if($scope.focus !== undefined) {
-                var current = $scope.getContextBinColor($scope.active.item.histogram[$scope.focus]);
-                angular.element(".polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
-                    'stroke': '#ddd',
-                    'stroke-width': '1',
-                    'fill': ""
+            $scope.focusLoaded = false;
+            $timeout(function(){
+                if($scope.focus !== undefined) {
+                    var current = $scope.getContextBinColor($scope.active.item.histogram[$scope.focus]);
+                    angular.element(".polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
+                        'stroke': '#ddd',
+                        'stroke-width': '1',
+                        'fill': ""
+                    });
+                }
+                $scope.focus = binNumber;
+                $scope.highlights = $scope.active.item.inverse[binNumber] === undefined ? [] :
+                    $scope.active.item.inverse[binNumber];
+                if($scope.sphericalBinData !== null) {
+                    $scope.sphericalBinData.setActiveBin(binNumber);
+                }
+                angular.element(".polar-bin-" + $scope.pdbid + "-" + binNumber).css({
+                    'stroke': '#a94442',
+                    'stroke-width': '2',
+                    'fill': '#a94442'
                 });
-            }
-            $scope.focus = binNumber;
-            $scope.highlights = $scope.active.item.inverse[binNumber] === undefined ? [] :
-                $scope.active.item.inverse[binNumber];
-            if($scope.sphericalBinData !== null) {
-                $scope.sphericalBinData.setActiveBin(binNumber);
-            }
-            angular.element(".polar-bin-" + $scope.pdbid + "-" + binNumber).css({
-                'stroke': '#a94442',
-                'stroke-width': '2',
-                'fill': '#a94442'
-            });
-            $scope.$apply();
+                $scope.focusLoaded = true;
+                //$scope.$apply();
+            }, 1);
         };
 
         $scope.resetHighlights = function (force) {
-            if($scope.focus !== undefined && $scope.focus !== null) {
-                var current = $scope.getContextBinColor($scope.active.item.histogram[$scope.focus]);
-                angular.element(".polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
-                    'stroke': '#ddd',
-                    'stroke-width': 1,
-                    'fill': ""
-                });
-            }
-            if($scope.sphericalBinData !== null) {
-                $scope.sphericalBinData.clearActiveBin($scope.focus);
-            }
-            $scope.highlights = [];
-            $scope.focus = null;
+            $scope.focusLoaded = false;
+            $timeout(function(){
+                if($scope.focus !== undefined && $scope.focus !== null) {
+                    var current = $scope.getContextBinColor($scope.active.item.histogram[$scope.focus]);
+                    angular.element(".polar-bin-" + $scope.pdbid + "-" + $scope.focus).css({
+                        'stroke': '#ddd',
+                        'stroke-width': 1,
+                        'fill': ""
+                    });
+                }
+                if($scope.sphericalBinData !== null) {
+                    $scope.sphericalBinData.clearActiveBin($scope.focus);
+                }
+                $scope.highlights = [];
+                $scope.focus = null;
+                $scope.focusLoaded = true;
+            }, 1);
         };
 
         $scope.toggleFocus = function (binIndex) {
@@ -311,12 +350,15 @@ angular.module('ResCtxVis.controllers', [
                 $scope.polarBinsTemplate = ContextSvgPaths(context);
                 $scope.clientTiming['drawing'] = (Date.now() - start) / 1000;
                 $scope.status = "";
+                $scope.loaded = true;
             });
+
         };
 
-
         if($scope.identifier) {
-            $scope.setIdentifier($scope.identifier);
+            $timeout(function(){
+                $scope.setIdentifier($scope.identifier);
+            }, 1);
         }
     }])
 

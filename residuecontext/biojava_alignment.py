@@ -101,7 +101,7 @@ def run_biojava_alignment(
         )
 
         with open(alignment, 'w') as f:
-            f.write(alignment_result.stdout)
+            f.write(str(alignment_result.stdout))
 
         superposed_pdb = os.path.join(exec_dir, ALIGNMENT_TEMP_PDB)
 

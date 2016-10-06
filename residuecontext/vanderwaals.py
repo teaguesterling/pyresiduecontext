@@ -164,7 +164,7 @@ def get_vanderderwaals_grids(code, chain=None, model=0, alignment_id=None,
     box_file = base + '.box'
     vdw = base + '.vdw'
     bmp = base + '.bmp'
-    outchem = os.path.join(os.path.dirname(base), 'OUTCHEM')
+    outchem = base + '.OUTCHEM'
 
     if not os.path.exists(box_file) or box is not None:
         with open(box_file, 'w') as f:

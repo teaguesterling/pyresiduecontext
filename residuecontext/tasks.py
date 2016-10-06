@@ -11,6 +11,8 @@ import json
 import werkzeug.security
 
 from celery import Celery
+from celery import current_app
+from celery.bin import worker
 
 try:
     from residuecontext.config import (
@@ -55,17 +57,23 @@ except ImportError:
 
 
 queue = Celery('tasks',
-               backend='db+sqlite:///celerydb.sqlite',
-               broker='sqla+sqlite:///celerydb.sqlite')
+               backend='db+sqlite:////tmp/pyresiduecontext.celerydb.sqlite',
+               broker='sqla+sqlite:////tmp/pyresiduecontext.celerydb.sqlite')
 queue.conf['CELERY_RESULT_DB_SHORT_LIVED_SESSIONS'] = True
+queue.conf['CELERY_TRACK_STARTED'] = True
 
 @queue.task
 def run_alignment_comparisons(identifier, code1, code2):
+    print("starting...")
     working_dir = werkzeug.security.safe_join(ALIGNMENT_JOB_DIR, str(identifier))
+    progress_file = os.path.join(working_dir, 'status')
 
     if os.path.exists(working_dir):
         shutil.rmtree(working_dir)
+
     os.mkdir(working_dir)
+    with open(progress_file, 'w') as f:
+        print("running", file=f)
 
     pdbid1, chain1 = extract_ident(code1)
     pdbid2, chain2 = extract_ident(code2)
@@ -119,6 +127,10 @@ def run_alignment_comparisons(identifier, code1, code2):
     )
     os.symlink(pdb1, os.path.join(ce_dir, "{0}.pdb".format(pdbid1)))
     os.symlink(pdb2, os.path.join(ce_dir, "{0}.pdb".format(pdbid2)))
+    phi = get_electrostatics_grid(pdbid1, chain=chain1, alignment_id=ce_dir)
+    get_vanderderwaals_grids(pdbid1, chain=chain1, alignment_id=ce_dir, box=phi, scale=1/phi.scale)
+    phi = get_electrostatics_grid(pdbid2, chain=chain2, alignment_id=ce_dir)
+    get_vanderderwaals_grids(pdbid2, chain=chain2, alignment_id=ce_dir, box=phi, scale=1/phi.scale)
 
     os.mkdir(fatcat_dir)
     run_biojava_alignment(
@@ -133,6 +145,10 @@ def run_alignment_comparisons(identifier, code1, code2):
     )
     os.symlink(pdb1, os.path.join(fatcat_dir, "{0}.pdb".format(pdbid1)))
     os.symlink(pdb2, os.path.join(fatcat_dir, "{0}.pdb".format(pdbid2)))
+    phi = get_electrostatics_grid(pdbid1, chain=chain1, alignment_id=fatcat_dir)
+    get_vanderderwaals_grids(pdbid1, chain=chain1, alignment_id=fatcat_dir, box=phi, scale=1/phi.scale)
+    phi = get_electrostatics_grid(pdbid2, chain=chain2, alignment_id=fatcat_dir)
+    get_vanderderwaals_grids(pdbid2, chain=chain2, alignment_id=fatcat_dir, box=phi, scale=1/phi.scale)
 
     os.mkdir(rcontext_dir)
     run_residuecontext_alignment(
@@ -146,6 +162,10 @@ def run_alignment_comparisons(identifier, code1, code2):
     )
     os.symlink(pdb1, os.path.join(rcontext_dir, "{0}.pdb".format(pdbid1)))
     os.symlink(pdb2, os.path.join(rcontext_dir, "{0}.pdb".format(pdbid2)))
+    phi = get_electrostatics_grid(pdbid1, chain=chain1, alignment_id=rcontext_dir)
+    get_vanderderwaals_grids(pdbid1, chain=chain1, alignment_id=rcontext_dir, box=phi, scale=1/phi.scale)
+    phi = get_electrostatics_grid(pdbid2, chain=chain2, alignment_id=rcontext_dir)
+    get_vanderderwaals_grids(pdbid2, chain=chain2, alignment_id=rcontext_dir, box=phi, scale=1/phi.scale)
 
     os.mkdir(dali_dir)
     run_dalilite_alignment(
@@ -159,4 +179,17 @@ def run_alignment_comparisons(identifier, code1, code2):
     )
     os.symlink(pdb1, os.path.join(dali_dir, "{0}.pdb".format(pdbid1)))
     os.symlink(pdb2, os.path.join(dali_dir, "{0}.pdb".format(pdbid2)))
+    phi = get_electrostatics_grid(pdbid1, chain=chain1, alignment_id=dali_dir)
+    get_vanderderwaals_grids(pdbid1, chain=chain1, alignment_id=dali_dir, box=phi, scale=1/phi.scale)
+    phi = get_electrostatics_grid(pdbid2, chain=chain2, alignment_id=dali_dir)
+    get_vanderderwaals_grids(pdbid2, chain=chain2, alignment_id=dali_dir, box=phi, scale=1/phi.scale)
 
+    with open(progress_file, 'w') as f:
+        print("done", file=f)
+    print("Finished.")
+
+
+if __name__ == '__main__':
+    app = current_app._get_current_object()
+    worker = worker.worker(app=app)
+    worker.run(**queue.conf)

@@ -186,35 +186,30 @@ def create_paired_grid_histogram(vdwA, vdwB, center, bins=50, extents=None, para
     #                                             boxStep=kwargs.pop('boxStep', None),
     #                                             boxSize=kwargs.pop('boxSize', np.e ** 2))
 
-    coordsA, valuesA = get_grid_data(vdwA)
-    coordsB, valuesB = get_grid_data(vdwB)
+    coords, valuesA = get_grid_data(vdwA)
+    _coords, valuesB = get_grid_data(vdwB)
+    valuesBp = np.log(valuesB)
 
     params = params or SphericalHistogramParams(**kwargs)
 
-    grid_pointsA = np.transpose(coordsA)
-    pointsA = grid_pointsA.reshape(-1, 3)
-
-    grid_pointsB = np.transpose(coordsB)
-    pointsB = grid_pointsB.reshape(-1, 3)
+    grid_points = np.transpose(coords)
+    points = grid_points.reshape(-1, 3)
 
     builder = SphericalHistogramBuilder(params)
 
-    builder.set_coordinates([center], pointsA)
-    histogramA, inverseA = builder.run()
-
-    builder.set_coordinates([center], pointsB)
-    histogramB, inverseB = builder.run()
+    builder.set_coordinates([center], points)
+    histogram, inverse = builder.run()
 
     if extents is None:
         extentsA = valuesA.min(), valuesA.max()
-        extentsB = valuesB.min(), valuesB.max()
+        extentsB = valuesBp.min(), valuesBp.max()
     elif isinstance(extents, list):
         extentsA, extentsB = extents
     else:
         extentsA = extents
         extentsB = extents
 
-    num_spherical_bins = histogramA.shape[-1]
+    num_spherical_bins = histogram.shape[-1]
     half_bins = bins//2  # B is negative A is positive
 
     inner_bin_boundaries = np.linspace(extentsA[0], extentsA[1], half_bins+1)
@@ -222,34 +217,29 @@ def create_paired_grid_histogram(vdwA, vdwB, center, bins=50, extents=None, para
 
     clippedA = np.clip(valuesA, extentsA[0], extentsA[1])
     flattenedA = clippedA.ravel()
-    mappingsA = inverseA.transpose()[0]
+    mappings = inverse.transpose()[0]
 
-    clippedB = np.clip(valuesB, extentsB[0], extentsB[1])
+    clippedB = np.clip(valuesBp, extentsB[0], extentsB[1])
     flattenedB = clippedB.ravel()
-    mappingsB = inverseB.transpose()[0]
 
     for bin_index in range(num_spherical_bins):
-        in_binA = mappingsA == bin_index
-        in_binB = mappingsB == bin_index
-        selectionA = flattenedA[in_binA]
-        selectionB = flattenedB[in_binB]
+        in_bin = mappings == bin_index
+        selectionA = flattenedA[in_bin]
+        selectionB = flattenedB[in_bin]
 
-        in_sphereA = selectionA
-        num_in_sphereA = len(in_sphereA)
+        in_sphere = selectionA
+        num_in_sphere = len(in_sphere)
 
-        in_sphereB = selectionB
-        num_in_sphereB = len(in_sphereB)
-
-        if num_in_sphereA == 0 and num_in_sphereB == 0:
+        if num_in_sphere == 0:
             bin_histograms[bin_index] = 0
         else:
-            bin_histogramA, _boundaries = np.histogram(in_sphereA, bins=inner_bin_boundaries)
-            bin_histogramB, _boundaries = np.histogram(in_sphereB, bins=inner_bin_boundaries)
+            bin_histogramA, _boundaries = np.histogram(selectionA, bins=inner_bin_boundaries)
+            bin_histogramB, _boundaries = np.histogram(selectionB, bins=inner_bin_boundaries)
             bin_histogramB_rev = bin_histogramB[::-1]  # All but "0" bin but backwards
 
             bin_histogram = np.zeros(bins)
-            bin_histogram[half_bins:] = bin_histogramA / num_in_sphereA
-            bin_histogram[:half_bins] = bin_histogramB_rev / num_in_sphereB
+            bin_histogram[half_bins:] = bin_histogramA / num_in_sphere
+            bin_histogram[:half_bins] = bin_histogramB_rev / num_in_sphere
 
             bin_histograms[bin_index] = bin_histogram
 

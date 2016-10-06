@@ -1,4 +1,9 @@
-<div class="row">
+<div class="row" ng-show="alignment.state!='SUCCESS'">
+    <h1>Alignment Job {{ alignmentRunId }}:
+        {{ alignment.params.structure1.ident }} and {{ alignment.params.structure2.ident }}</h1>
+    <h2>{{ alignment.state }}&hellip;</h2>
+</div>
+<div class="row" ng-show="ready && alignment.state == 'SUCCESS'">
     <h1>Alignment Job {{ alignmentRunId }}:
         {{ alignment.params.structure1.ident }} and {{ alignment.params.structure2.ident }}</h1>
     <h2>View Alignments</h2>
